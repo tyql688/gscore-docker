@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 脚本版本
-VERSION="1.0.0"
+VERSION="1.0.1"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -341,9 +341,11 @@ install_plugins() {
                 echo "${YELLOW}插件 $name 已存在, 跳过${NC}"
             else
                 echo "${YELLOW}正在安装 $name ...${NC}"
-                git clone "$url" "$PLUGINS_DIR/$name" 2>/dev/null && \
-                    echo "${GREEN}[OK] $name 安装完成${NC}" || \
+                if git clone --progress "$url" "$PLUGINS_DIR/$name"; then
+                    echo "${GREEN}[OK] $name 安装完成${NC}"
+                else
                     echo "${RED}[FAIL] $name 安装失败${NC}"
+                fi
             fi
             installed=1
         fi
