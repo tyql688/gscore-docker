@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 脚本版本
-VERSION="1.0.3"
+VERSION="1.0.5"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -139,9 +139,6 @@ else
     MOUNT_PATH="$mount_input"
     echo "${GREEN}✓ 使用挂载目录: $MOUNT_PATH${NC}"
 fi
-
-# venv 目录
-VENV_PATH="${CURRENT_DIR}/venv"
 
 echo ""
 
@@ -467,9 +464,6 @@ PORT=${PORT}
 
 # 挂载目录
 MOUNT_PATH=${MOUNT_PATH}
-
-# venv 目录
-VENV_PATH=${VENV_PATH}
 EOF
 echo "${GREEN}✓ .env 文件已生成${NC}"
 
@@ -492,10 +486,13 @@ services:
       - "${PORT:-8765}:8765"
     volumes:
       - ${MOUNT_PATH}:/gsuid_core
-      - ${VENV_PATH}:/venv
+      - venv-data:/venv
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
+
+volumes:
+  venv-data:
 EOF
 else
     cat > docker-compose.yaml << EOF
@@ -510,10 +507,13 @@ services:
       - "\${PORT:-8765}:8765"
     volumes:
       - \${MOUNT_PATH}:/gsuid_core
-      - \${VENV_PATH}:/venv
+      - venv-data:/venv
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
+
+volumes:
+  venv-data:
 EOF
 fi
 
@@ -543,16 +543,29 @@ echo "${GREEN}================================================${NC}"
 echo ""
 echo "配置文件: ${GREEN}docker-compose.yaml${NC}"
 echo ""
-echo "运行方式:"
-echo "  ${YELLOW}启动服务:${NC}"
+echo "${YELLOW}常用命令:${NC}"
+echo ""
+echo "  ${GREEN}启动服务:${NC}"
 echo "    docker-compose up -d"
 echo ""
-echo "  ${YELLOW}查看日志:${NC}"
+echo "  ${GREEN}查看日志:${NC}"
 echo "    docker-compose logs -f"
 echo ""
-echo "  ${YELLOW}停止服务:${NC}"
+echo "  ${GREEN}重启服务:${NC}"
+echo "    docker-compose restart"
+echo ""
+echo "  ${GREEN}重新构建并启动:${NC}"
+echo "    docker-compose up -d --build"
+echo ""
+echo "  ${GREEN}停止服务:${NC}"
 echo "    docker-compose down"
 echo ""
-echo "  ${YELLOW}重新配置:${NC}"
+echo "  ${GREEN}查看状态:${NC}"
+echo "    docker-compose ps"
+echo ""
+echo "  ${GREEN}查看资源使用:${NC}"
+echo "    docker stats gsuid_core"
+echo ""
+echo "  ${GREEN}重新配置:${NC}"
 echo "    ./setup.sh"
 echo ""
