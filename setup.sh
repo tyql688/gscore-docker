@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 脚本版本
-VERSION="1.0.1"
+VERSION="1.0.2"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -211,7 +211,7 @@ install_plugins() {
     esac
 
     # 插件数量
-    PLUGIN_COUNT=15
+    PLUGIN_COUNT=16
 
     # 插件名称和描述
     PLUGIN_NAME_1="GenshinUID";      PLUGIN_DESC_1="原神"
@@ -225,14 +225,33 @@ install_plugins() {
     PLUGIN_NAME_9="BlueArchiveUID";  PLUGIN_DESC_9="蔚蓝档案"
     PLUGIN_NAME_10="VAUID";          PLUGIN_DESC_10="无畏契约"
     PLUGIN_NAME_11="DeltaUID";       PLUGIN_DESC_11="三角洲"
-    PLUGIN_NAME_12="SayuStock";      PLUGIN_DESC_12="早柚股票"
-    PLUGIN_NAME_13="RoverSign";      PLUGIN_DESC_13="鸣潮签到"
-    PLUGIN_NAME_14="ScoreEcho";      PLUGIN_DESC_14="小维OCR识别声骸并评分"
-    PLUGIN_NAME_15="TodayEcho";      PLUGIN_DESC_15="小维声骸强化模拟插件"
+    PLUGIN_NAME_12="DNAUID";         PLUGIN_DESC_12="二重螺旋"
+    PLUGIN_NAME_13="SayuStock";      PLUGIN_DESC_13="早柚股票"
+    PLUGIN_NAME_14="RoverSign";      PLUGIN_DESC_14="鸣潮签到"
+    PLUGIN_NAME_15="ScoreEcho";      PLUGIN_DESC_15="小维OCR识别声骸并评分"
+    PLUGIN_NAME_16="TodayEcho";      PLUGIN_DESC_16="小维声骸强化模拟插件"
+
+    # CNB 镜像 URL 映射 (用于替换源)
+    CNB_URL_1="https://cnb.cool/gscore-mirror/GenshinUID.git"
+    CNB_URL_2="https://cnb.cool/gscore-mirror/StarRailUID.git"
+    CNB_URL_3="https://cnb.cool/gscore-mirror/ZZZeroUID.git"
+    CNB_URL_4="https://cnb.cool/gscore-mirror/XutheringWavesUID.git"
+    CNB_URL_5="https://cnb.cool/gscore-mirror/WzryUID.git"
+    CNB_URL_6="https://cnb.cool/gscore-mirror/LOLegendsUID.git"
+    CNB_URL_7="https://cnb.cool/gscore-mirror/MajsoulUID.git"
+    CNB_URL_8="https://cnb.cool/gscore-mirror/CS2UID.git"
+    CNB_URL_9="https://cnb.cool/gscore-mirror/BlueArchiveUID.git"
+    CNB_URL_10="https://cnb.cool/gscore-mirror/VAUID.git"
+    CNB_URL_11="https://cnb.cool/gscore-mirror/DeltaUID.git"
+    CNB_URL_12="https://cnb.cool/gscore-mirror/DNAUID.git"
+    CNB_URL_13="https://cnb.cool/gscore-mirror/SayuStock.git"
+    CNB_URL_14="https://cnb.cool/gscore-mirror/RoverSign.git"
+    CNB_URL_15="https://cnb.cool/gscore-mirror/ScoreEcho.git"
+    CNB_URL_16="https://cnb.cool/gscore-mirror/TodayEcho.git"
 
     # 选择状态
     SEL_1=0; SEL_2=0; SEL_3=0; SEL_4=0; SEL_5=0; SEL_6=0; SEL_7=0; SEL_8=0
-    SEL_9=0; SEL_10=0; SEL_11=0; SEL_12=0; SEL_13=0; SEL_14=0; SEL_15=0
+    SEL_9=0; SEL_10=0; SEL_11=0; SEL_12=0; SEL_13=0; SEL_14=0; SEL_15=0; SEL_16=0
 
     # 显示菜单
     show_menu() {
@@ -279,7 +298,7 @@ install_plugins() {
         fi
 
         # 切换选择状态
-        if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le 15 ]; then
+        if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le 16 ]; then
             eval "current=\$SEL_$choice"
             if [ "$current" = "1" ]; then
                 eval "SEL_$choice=0"
@@ -302,10 +321,11 @@ install_plugins() {
         PLUGIN_9="https://cnb.cool/gscore-mirror/BlueArchiveUID.git"
         PLUGIN_10="https://cnb.cool/gscore-mirror/VAUID.git"
         PLUGIN_11="https://cnb.cool/gscore-mirror/DeltaUID.git"
-        PLUGIN_12="https://cnb.cool/gscore-mirror/SayuStock.git"
-        PLUGIN_13="https://cnb.cool/gscore-mirror/RoverSign.git"
-        PLUGIN_14="https://cnb.cool/gscore-mirror/ScoreEcho.git"
-        PLUGIN_15="https://cnb.cool/gscore-mirror/TodayEcho.git"
+        PLUGIN_12="https://cnb.cool/gscore-mirror/DNAUID.git"
+        PLUGIN_13="https://cnb.cool/gscore-mirror/SayuStock.git"
+        PLUGIN_14="https://cnb.cool/gscore-mirror/RoverSign.git"
+        PLUGIN_15="https://cnb.cool/gscore-mirror/ScoreEcho.git"
+        PLUGIN_16="https://cnb.cool/gscore-mirror/TodayEcho.git"
     else
         PLUGIN_1="https://github.com/KimigaiiWuyi/GenshinUID.git"
         PLUGIN_2="https://github.com/baiqwerdvd/StarRailUID.git"
@@ -318,10 +338,11 @@ install_plugins() {
         PLUGIN_9="https://github.com/KimigaiiWuyi/BlueArchiveUID.git"
         PLUGIN_10="https://github.com/Agnes4m/VAUID.git"
         PLUGIN_11="https://github.com/Agnes4m/DeltaUID.git"
-        PLUGIN_12="https://github.com/KimigaiiWuyi/SayuStock.git"
-        PLUGIN_13="https://github.com/Loping151/RoverSign.git"
-        PLUGIN_14="https://github.com/Loping151/ScoreEcho.git"
-        PLUGIN_15="https://github.com/Loping151/TodayEcho.git"
+        PLUGIN_12="https://github.com/tyql688/DNAUID.git"
+        PLUGIN_13="https://github.com/KimigaiiWuyi/SayuStock.git"
+        PLUGIN_14="https://github.com/Loping151/RoverSign.git"
+        PLUGIN_15="https://github.com/Loping151/ScoreEcho.git"
+        PLUGIN_16="https://github.com/Loping151/TodayEcho.git"
     fi
 
     # 创建插件目录
@@ -338,7 +359,39 @@ install_plugins() {
             eval "name=\$PLUGIN_NAME_$i"
 
             if [ -d "$PLUGINS_DIR/$name" ]; then
-                echo "${YELLOW}插件 $name 已存在, 跳过${NC}"
+                # 检查当前远程源
+                current_remote=$(git -C "$PLUGINS_DIR/$name" remote get-url origin 2>/dev/null || echo "")
+
+                # 判断当前源类型
+                if echo "$current_remote" | grep -q "github.com"; then
+                    current_source="GitHub"
+                elif echo "$current_remote" | grep -q "cnb.cool"; then
+                    current_source="CNB"
+                else
+                    current_source="未知"
+                fi
+
+                # 判断用户选择的源类型
+                if [ "$USE_CNB" = "true" ]; then
+                    selected_source="CNB"
+                else
+                    selected_source="GitHub"
+                fi
+
+                # 检查是否一致
+                if [ "$current_source" != "$selected_source" ]; then
+                    echo "${YELLOW}插件 $name 已存在 (当前源: $current_source, 选择源: $selected_source)${NC}"
+                    printf "  是否替换为 $selected_source 源? [y/N]: "
+                    read -r switch_choice
+                    if [ "$switch_choice" = "y" ] || [ "$switch_choice" = "Y" ]; then
+                        git -C "$PLUGINS_DIR/$name" remote set-url origin "$url"
+                        echo "${GREEN}  [OK] 已替换为 $selected_source 源${NC}"
+                    else
+                        echo "${YELLOW}  跳过${NC}"
+                    fi
+                else
+                    echo "${YELLOW}插件 $name 已存在 (源: $current_source), 跳过${NC}"
+                fi
             else
                 echo "${YELLOW}正在安装 $name ...${NC}"
                 if git clone --progress "$url" "$PLUGINS_DIR/$name"; then
