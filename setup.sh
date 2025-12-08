@@ -3,15 +3,34 @@
 
 set -e
 
-# 颜色输出
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# 颜色输出配置 (兼容 POSIX sh)
+if [ -t 1 ]; then
+    # 尝试使用 tput (如果可用)
+    if command -v tput >/dev/null 2>&1; then
+        RED=$(tput setaf 1)
+        GREEN=$(tput setaf 2)
+        YELLOW=$(tput setaf 3)
+        BLUE=$(tput setaf 4)
+        NC=$(tput sgr0)
+    else
+        # 回退到 ANSI 转义序列
+        RED='\033[0;31m'
+        GREEN='\033[0;32m'
+        YELLOW='\033[1;33m'
+        BLUE='\033[0;34m'
+        NC='\033[0m'
+    fi
+else
+    # 如果不是终端，禁用颜色
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    NC=''
+fi
 
 # 脚本版本
-VERSION="1.0.5"
+VERSION="1.0.6"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -51,76 +70,136 @@ echo "${BLUE}gsuid_core Docker 环境初始化${NC}"
 echo "${BLUE}================================================${NC}"
 echo ""
 
-# 选择部署方式
-echo "${YELLOW}选择部署方式:${NC}"
-echo "  1) 构建本地镜像 (使用本地 Dockerfile)"
-echo "  2) 使用远程镜像 (从镜像仓库拉取)"
-echo ""
-printf "请输入选择 [1-2]: "
-read -r deploy_choice
+# 初始化变量
+USE_LOCAL_BUILD=""
+REMOTE_IMAGE=""
+UPDATE_COMPOSE="true" # 默认生成/更新配置文件
 
-case "$deploy_choice" in
-    1)
-        USE_LOCAL_BUILD="true"
-        echo "${GREEN}✓ 将构建本地镜像${NC}"
-        ;;
-    2)
-        USE_LOCAL_BUILD="false"
-        echo "${GREEN}✓ 将使用远程镜像${NC}"
-        # 选择远程镜像
-        echo ""
-        echo "${YELLOW}选择远程镜像源:${NC}"
-        echo "  1) CNB 加速 (docker.cnb.cool/gscore-mirror/gscore-docker:latest)"
-        echo "  2) Docker Hub (tyql688/gscore:latest)"
-        echo "  3) 自定义镜像地址"
-        echo ""
-        printf "请输入选择 [1-3]: "
-        read -r image_choice
+# 检测现有的 docker-compose.yaml 配置
+if [ -f "docker-compose.yaml" ]; then
+    # 简单的文本匹配来猜测配置
+    if grep -q "build:" docker-compose.yaml; then
+        EXISTING_MODE="local"
+        EXISTING_IMAGE_INFO="本地构建 (local build)"
+    elif grep -q "image:" docker-compose.yaml; then
+        EXISTING_MODE="remote"
+        # 尝试提取镜像名
+        EXISTING_IMAGE=$(grep "image:" docker-compose.yaml | head -1 | awk '{print $2}')
+        EXISTING_IMAGE_INFO="远程镜像 ($EXISTING_IMAGE)"
+    fi
 
-        case "$image_choice" in
-            1)
-                REMOTE_IMAGE="docker.cnb.cool/gscore-mirror/gscore-docker:latest"
-                echo "${GREEN}✓ 使用 CNB 加速镜像${NC}"
-                ;;
-            2)
-                REMOTE_IMAGE="tyql688/gscore:latest"
-                echo "${GREEN}✓ 使用 Docker Hub 镜像${NC}"
-                ;;
-            3)
-                printf "请输入镜像地址: "
-                read -r image_input
-                if [ -z "$image_input" ]; then
-                    echo "${RED}错误: 镜像地址不能为空${NC}" >&2
+    if [ -n "$EXISTING_MODE" ]; then
+        echo "${YELLOW}检测到当前配置为: $EXISTING_IMAGE_INFO${NC}"
+        printf "是否保持当前部署配置? [Y/n]: "
+        read -r keep_config
+        
+        if [ "$keep_config" != "n" ] && [ "$keep_config" != "N" ]; then
+            if [ "$EXISTING_MODE" = "local" ]; then
+                USE_LOCAL_BUILD="true"
+            else
+                USE_LOCAL_BUILD="false"
+                REMOTE_IMAGE="$EXISTING_IMAGE"
+            fi
+            UPDATE_COMPOSE="false"
+            echo "${GREEN}✓ 保持当前配置，将跳过重新生成 docker-compose.yaml${NC}"
+        else
+            echo "${YELLOW}即将重新配置部署方式...${NC}"
+        fi
+        echo ""
+    fi
+fi
+
+# 选择部署方式 (如果未确定)
+if [ -z "$USE_LOCAL_BUILD" ]; then
+    echo "${YELLOW}选择部署方式:${NC}"
+    echo "  1) 构建本地镜像 (使用本地 Dockerfile)"
+    echo "  2) 使用远程镜像 (从镜像仓库拉取)"
+    echo ""
+    printf "请输入选择 [1-2]: "
+    read -r deploy_choice
+
+    case "$deploy_choice" in
+        1)
+            USE_LOCAL_BUILD="true"
+            echo "${GREEN}✓ 将构建本地镜像${NC}"
+            ;;
+        2)
+            USE_LOCAL_BUILD="false"
+            echo "${GREEN}✓ 将使用远程镜像${NC}"
+            # 选择远程镜像
+            echo ""
+            echo "${YELLOW}选择远程镜像源:${NC}"
+            echo "  1) CNB 加速 (docker.cnb.cool/gscore-mirror/gscore-docker:latest)"
+            echo "  2) Docker Hub (tyql688/gscore:latest)"
+            echo "  3) 自定义镜像地址"
+            echo ""
+            printf "请输入选择 [1-3]: "
+            read -r image_choice
+
+            case "$image_choice" in
+                1)
+                    REMOTE_IMAGE="docker.cnb.cool/gscore-mirror/gscore-docker:latest"
+                    echo "${GREEN}✓ 使用 CNB 加速镜像${NC}"
+                    ;;
+                2)
+                    REMOTE_IMAGE="tyql688/gscore:latest"
+                    echo "${GREEN}✓ 使用 Docker Hub 镜像${NC}"
+                    ;;
+                3)
+                    printf "请输入镜像地址: "
+                    read -r image_input
+                    if [ -z "$image_input" ]; then
+                        echo "${RED}错误: 镜像地址不能为空${NC}" >&2
+                        exit 1
+                    fi
+                    REMOTE_IMAGE="$image_input"
+                    echo "${GREEN}✓ 使用自定义镜像: $REMOTE_IMAGE${NC}"
+                    ;;
+                *)
+                    echo "${RED}错误: 无效选择${NC}" >&2
                     exit 1
-                fi
-                REMOTE_IMAGE="$image_input"
-                echo "${GREEN}✓ 使用自定义镜像: $REMOTE_IMAGE${NC}"
-                ;;
-            *)
-                echo "${RED}错误: 无效选择${NC}" >&2
-                exit 1
-                ;;
-        esac
-        ;;
-    *)
-        echo "${RED}错误: 无效选择${NC}" >&2
-        exit 1
-        ;;
-esac
+                    ;;
+            esac
+            ;;
+        *)
+            echo "${RED}错误: 无效选择${NC}" >&2
+            exit 1
+            ;;
+    esac
+fi
 
 echo ""
 
 # 设置端口
-echo "${YELLOW}设置端口号 (默认: 8765):${NC}"
-printf "请输入端口号或直接回车使用默认值: "
-read -r port_input
+PORT=""
 
-if [ -z "$port_input" ]; then
-    PORT="8765"
-    echo "${GREEN}✓ 使用默认端口: 8765${NC}"
-else
-    PORT="$port_input"
-    echo "${GREEN}✓ 使用端口: $PORT${NC}"
+# 尝试从 .env 读取 PORT
+if [ -f ".env" ]; then
+    ENV_PORT=$(grep "^PORT=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    if [ -n "$ENV_PORT" ]; then
+        echo "${YELLOW}检测到已配置端口: ${ENV_PORT}${NC}"
+        printf "是否修改端口? [y/N]: "
+        read -r change_port
+        if [ "$change_port" != "y" ] && [ "$change_port" != "Y" ]; then
+            PORT="$ENV_PORT"
+            echo "${GREEN}✓ 保持使用端口: $PORT${NC}"
+        fi
+    fi
+fi
+
+# 如果没有从 .env 获取到 PORT，则进行询问
+if [ -z "$PORT" ]; then
+    echo "${YELLOW}设置端口号 (默认: 8765):${NC}"
+    printf "请输入端口号或直接回车使用默认值: "
+    read -r port_input
+
+    if [ -z "$port_input" ]; then
+        PORT="8765"
+        echo "${GREEN}✓ 使用默认端口: 8765${NC}"
+    else
+        PORT="$port_input"
+        echo "${GREEN}✓ 使用端口: $PORT${NC}"
+    fi
 fi
 
 echo ""
@@ -128,16 +207,42 @@ echo ""
 # 设置挂载目录
 CURRENT_DIR="$(pwd)"
 DEFAULT_MOUNT="${CURRENT_DIR}/gsuid_core"
-echo "${YELLOW}设置挂载目录 (默认: $DEFAULT_MOUNT):${NC}"
-printf "请输入路径或直接回车使用默认值: "
-read -r mount_input
+MOUNT_PATH=""
 
-if [ -z "$mount_input" ]; then
-    MOUNT_PATH="$DEFAULT_MOUNT"
-    echo "${GREEN}✓ 使用默认挂载目录: $MOUNT_PATH${NC}"
-else
-    MOUNT_PATH="$mount_input"
-    echo "${GREEN}✓ 使用挂载目录: $MOUNT_PATH${NC}"
+# 尝试从 .env 读取 MOUNT_PATH
+if [ -f ".env" ]; then
+    # 读取 .env 中的 MOUNT_PATH，去除可能的引号和空白
+    ENV_MOUNT_PATH=$(grep "^MOUNT_PATH=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    if [ -n "$ENV_MOUNT_PATH" ]; then
+        echo "${YELLOW}检测到已配置挂载目录: ${ENV_MOUNT_PATH}${NC}"
+        printf "是否修改挂载目录? [y/N]: "
+        read -r change_mount
+        if [ "$change_mount" != "y" ] && [ "$change_mount" != "Y" ]; then
+            MOUNT_PATH="$ENV_MOUNT_PATH"
+            echo "${GREEN}✓ 保持使用: $MOUNT_PATH${NC}"
+        fi
+    fi
+fi
+
+# 如果没有从 .env 获取到 MOUNT_PATH，则进行询问
+if [ -z "$MOUNT_PATH" ]; then
+    echo "${YELLOW}设置挂载目录 (默认: $DEFAULT_MOUNT):${NC}"
+    printf "请输入路径或直接回车使用默认值: "
+    read -r mount_input
+
+    if [ -z "$mount_input" ]; then
+        MOUNT_PATH="$DEFAULT_MOUNT"
+        echo "${GREEN}✓ 使用默认挂载目录: $MOUNT_PATH${NC}"
+    else
+        MOUNT_PATH="$mount_input"
+        echo "${GREEN}✓ 使用挂载目录: $MOUNT_PATH${NC}"
+    fi
+fi
+
+# 配置 git safe.directory，防止 ownership 报错
+if ! git config --global --get-all safe.directory | grep -q "^${MOUNT_PATH}$"; then
+    echo "${YELLOW}添加 ${MOUNT_PATH} 到 git safe.directory...${NC}"
+    git config --global --add safe.directory "${MOUNT_PATH}"
 fi
 
 echo ""
@@ -265,10 +370,18 @@ install_plugins() {
             eval "selected=\$SEL_$i"
             eval "name=\$PLUGIN_NAME_$i"
             eval "desc=\$PLUGIN_DESC_$i"
-            if [ "$selected" = "1" ]; then
-                printf "  ${GREEN}[x]${NC} %2d) %-20s %s\n" "$i" "$name" "$desc"
+
+            # 检查安装状态
+            if [ -d "$PLUGINS_DIR/$name" ]; then
+                status_str="${GREEN}[已安装]${NC}"
             else
-                printf "  [ ] %2d) %-20s %s\n" "$i" "$name" "$desc"
+                status_str="${YELLOW}[未安装]${NC}"
+            fi
+
+            if [ "$selected" = "1" ]; then
+                printf "  ${GREEN}[x]${NC} %2d) %-20s %-18s %s\n" "$i" "$name" "$status_str" "$desc"
+            else
+                printf "  [ ] %2d) %-20s %-18s %s\n" "$i" "$name" "$status_str" "$desc"
             fi
             i=$((i+1))
         done
@@ -469,9 +582,10 @@ echo "${GREEN}✓ .env 文件已生成${NC}"
 
 echo "${YELLOW}生成 docker-compose.yaml 文件...${NC}"
 
-# 生成 docker-compose.yaml 文件
-if [ "$USE_LOCAL_BUILD" = "true" ]; then
-    cat > docker-compose.yaml << 'EOF'
+# 生成 docker-compose.yaml 文件 (如果需要更新)
+if [ "$UPDATE_COMPOSE" = "true" ]; then
+    if [ "$USE_LOCAL_BUILD" = "true" ]; then
+        cat > docker-compose.yaml << 'EOF'
 # gsuid_core Docker Compose 配置
 # 部署方式: 本地构建
 
@@ -494,8 +608,8 @@ services:
 volumes:
   venv-data:
 EOF
-else
-    cat > docker-compose.yaml << EOF
+    else
+        cat > docker-compose.yaml << EOF
 # gsuid_core Docker Compose 配置
 # 部署方式: 远程镜像
 
@@ -515,9 +629,11 @@ services:
 volumes:
   venv-data:
 EOF
+    fi
+    echo "${GREEN}✓ docker-compose.yaml 文件已生成${NC}"
+else
+    echo "${GREEN}✓ 跳过 docker-compose.yaml 生成 (保持现有配置)${NC}"
 fi
-
-echo "${GREEN}✓ docker-compose.yaml 文件已生成${NC}"
 echo ""
 
 # 询问是否立即构建/拉取镜像
