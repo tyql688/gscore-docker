@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 脚本版本
-VERSION="1.0.2"
+VERSION="1.0.3"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -126,7 +126,8 @@ fi
 echo ""
 
 # 设置挂载目录
-DEFAULT_MOUNT="$(pwd)/gsuid_core"
+CURRENT_DIR="$(pwd)"
+DEFAULT_MOUNT="${CURRENT_DIR}/gsuid_core"
 echo "${YELLOW}设置挂载目录 (默认: $DEFAULT_MOUNT):${NC}"
 printf "请输入路径或直接回车使用默认值: "
 read -r mount_input
@@ -138,6 +139,9 @@ else
     MOUNT_PATH="$mount_input"
     echo "${GREEN}✓ 使用挂载目录: $MOUNT_PATH${NC}"
 fi
+
+# venv 目录
+VENV_PATH="${CURRENT_DIR}/venv"
 
 echo ""
 
@@ -463,6 +467,9 @@ PORT=${PORT}
 
 # 挂载目录
 MOUNT_PATH=${MOUNT_PATH}
+
+# venv 目录
+VENV_PATH=${VENV_PATH}
 EOF
 echo "${GREEN}✓ .env 文件已生成${NC}"
 
@@ -484,7 +491,8 @@ services:
     ports:
       - "${PORT:-8765}:8765"
     volumes:
-      - ${MOUNT_PATH:-./gsuid_core}:/gsuid_core
+      - ${MOUNT_PATH}:/gsuid_core
+      - ${VENV_PATH}:/venv
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
@@ -501,7 +509,8 @@ services:
     ports:
       - "\${PORT:-8765}:8765"
     volumes:
-      - \${MOUNT_PATH:-./gsuid_core}:/gsuid_core
+      - \${MOUNT_PATH}:/gsuid_core
+      - \${VENV_PATH}:/venv
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
