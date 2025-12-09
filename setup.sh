@@ -30,7 +30,7 @@ else
 fi
 
 # 脚本版本
-VERSION="1.1.0"
+VERSION="1.1.1"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -671,7 +671,7 @@ else
 fi
 
 # 只有在 no_proxy 为空时才设置为默认值（保留用户修改）
-FINAL_NO_PROXY="${EXISTING_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool}"
+FINAL_NO_PROXY="${EXISTING_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}"
 
 # 生成 .env 文件（保留代理配置）
 cat > .env << EOF
@@ -771,7 +771,7 @@ services:
       - PYTHONUNBUFFERED=1
       - http_proxy=${http_proxy:-}
       - https_proxy=${https_proxy:-}
-      - no_proxy=${no_proxy:-localhost,127.0.0.1,.local,cnb.cool}
+      - no_proxy=${no_proxy:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}
 
 volumes:
   venv-data:
@@ -797,7 +797,7 @@ services:
       - PYTHONUNBUFFERED=1
       - http_proxy=\${http_proxy:-}
       - https_proxy=\${https_proxy:-}
-      - no_proxy=\${no_proxy:-localhost,127.0.0.1,.local,cnb.cool}
+      - no_proxy=\${no_proxy:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}
 
 volumes:
   venv-data:
@@ -870,3 +870,13 @@ echo ""
 echo "  ${GREEN}重新配置:${NC}"
 echo "    ./setup.sh"
 echo ""
+
+# 检查是否配置了代理，如果配置了则提示 git 代理
+if [ -f ".env" ]; then
+    FINAL_HTTP_PROXY=$(grep "^http_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" | grep -v '^$' || echo "")
+    if [ -n "$FINAL_HTTP_PROXY" ]; then
+        echo "${YELLOW}提示：如需在容器内使用 git 代理，请在容器运行后手动执行：${NC}"
+        echo "  docker exec -it gsuid_core git config --global http.proxy $FINAL_HTTP_PROXY"
+        echo ""
+    fi
+fi
