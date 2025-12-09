@@ -30,7 +30,7 @@ else
 fi
 
 # 脚本版本
-VERSION="1.0.9"
+VERSION="1.1.0"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -240,9 +240,17 @@ if [ -z "$MOUNT_PATH" ]; then
 fi
 
 # 配置 git safe.directory，防止 ownership 报错
+# 添加挂载目录本身
 if ! git config --global --get-all safe.directory | grep -q "^${MOUNT_PATH}$"; then
     echo "${YELLOW}添加 ${MOUNT_PATH} 到 git safe.directory...${NC}"
     git config --global --add safe.directory "${MOUNT_PATH}"
+fi
+
+# 添加 /gsuid_core/* 模式匹配所有直接子目录
+SUBDIR_PATTERN="/gsuid_core/*"
+if ! git config --global --get-all safe.directory | grep -q "^${SUBDIR_PATTERN}$"; then
+    echo "${YELLOW}添加 ${SUBDIR_PATTERN} 到 git safe.directory...${NC}"
+    git config --global --add safe.directory "${SUBDIR_PATTERN}"
 fi
 
 echo ""
@@ -710,6 +718,12 @@ RUN apt-get update && apt-get install -y \
     tzdata && \
     rm -rf /var/lib/apt/lists/* && \
     ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
+
+# 配置 git safe.directory，防止容器内 ownership 报错
+# 添加 /gsuid_core 根目录及其所有直接子目录
+RUN git config --global --add safe.directory '/gsuid_core' && \
+    git config --global --add safe.directory '/gsuid_core/*' && \
+    git config --global --add safe.directory '/venv'
 
 # 在镜像层创建 venv（/venv 不会被挂载覆盖）
 RUN uv venv --seed /venv
