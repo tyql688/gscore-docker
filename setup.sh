@@ -30,7 +30,7 @@ else
 fi
 
 # 脚本版本
-VERSION="1.0.6"
+VERSION="1.0.7"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -560,6 +560,9 @@ RUN uv venv --seed /venv
 
 # 告诉 uv 永远用它
 ENV UV_PROJECT_ENVIRONMENT=/venv
+
+# 设置 PATH，优先从 /venv/bin 查找可执行文件
+ENV PATH="/venv/bin:$PATH"
 
 # 启动命令
 CMD ["uv", "run", "--python", "/venv/bin/python", "core", "--host", "0.0.0.0"]
