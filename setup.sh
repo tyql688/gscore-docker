@@ -30,7 +30,7 @@ else
 fi
 
 # 脚本版本
-VERSION="1.1.1"
+VERSION="1.2.0"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -545,9 +545,9 @@ configure_proxy() {
     DELETE_PROXY="false"
 
     # 尝试从 .env 读取代理配置
-    ENV_http_proxy=$(grep "^http_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
-    ENV_https_proxy=$(grep "^https_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
-    ENV_no_proxy=$(grep "^no_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    ENV_http_proxy=$(grep "^GSCORE_HTTP_PROXY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    ENV_https_proxy=$(grep "^GSCORE_HTTPS_PROXY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    ENV_no_proxy=$(grep "^GSCORE_NO_PROXY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
 
     if [ -n "$ENV_http_proxy" ] || [ -n "$ENV_https_proxy" ]; then
         # 已配置代理
@@ -604,34 +604,34 @@ configure_proxy() {
 
     # 更新 .env 文件中的代理配置
     if [ "$DELETE_PROXY" = "true" ]; then
-        # 删除代理配置（保留 no_proxy）
-        sed -i.bak '/^http_proxy=/d' .env 2>/dev/null || true
-        sed -i.bak '/^https_proxy=/d' .env 2>/dev/null || true
-        # 保留 no_proxy 行，不修改
+        # 删除代理配置（保留 GSCORE_NO_PROXY）
+        sed -i.bak '/^GSCORE_HTTP_PROXY=/d' .env 2>/dev/null || true
+        sed -i.bak '/^GSCORE_HTTPS_PROXY=/d' .env 2>/dev/null || true
+        # 保留 GSCORE_NO_PROXY 行，不修改
     else
         # 正常更新代理配置
         if [ -n "$ENV_http_proxy" ]; then
-            if grep -q "^http_proxy=" .env 2>/dev/null; then
-                sed -i.bak "s|^http_proxy=.*|http_proxy=$ENV_http_proxy|" .env 2>/dev/null || true
+            if grep -q "^GSCORE_HTTP_PROXY=" .env 2>/dev/null; then
+                sed -i.bak "s|^GSCORE_HTTP_PROXY=.*|GSCORE_HTTP_PROXY=$ENV_http_proxy|" .env 2>/dev/null || true
             else
-                echo "http_proxy=$ENV_http_proxy" >> .env 2>/dev/null || true
+                echo "GSCORE_HTTP_PROXY=$ENV_http_proxy" >> .env 2>/dev/null || true
             fi
         fi
 
         if [ -n "$ENV_https_proxy" ]; then
-            if grep -q "^https_proxy=" .env 2>/dev/null; then
-                sed -i.bak "s|^https_proxy=.*|https_proxy=$ENV_https_proxy|" .env 2>/dev/null || true
+            if grep -q "^GSCORE_HTTPS_PROXY=" .env 2>/dev/null; then
+                sed -i.bak "s|^GSCORE_HTTPS_PROXY=.*|GSCORE_HTTPS_PROXY=$ENV_https_proxy|" .env 2>/dev/null || true
             else
-                echo "https_proxy=$ENV_https_proxy" >> .env 2>/dev/null || true
+                echo "GSCORE_HTTPS_PROXY=$ENV_https_proxy" >> .env 2>/dev/null || true
             fi
         fi
 
-        # 只有在明确设置了 no_proxy 时才更新（保留用户修改）
+        # 只有在明确设置了 GSCORE_NO_PROXY 时才更新（保留用户修改）
         if [ -n "$ENV_no_proxy" ]; then
-            if grep -q "^no_proxy=" .env 2>/dev/null; then
-                sed -i.bak "s|^no_proxy=.*|no_proxy=$ENV_no_proxy|" .env 2>/dev/null || true
+            if grep -q "^GSCORE_NO_PROXY=" .env 2>/dev/null; then
+                sed -i.bak "s|^GSCORE_NO_PROXY=.*|GSCORE_NO_PROXY=$ENV_no_proxy|" .env 2>/dev/null || true
             else
-                echo "no_proxy=$ENV_no_proxy" >> .env 2>/dev/null || true
+                echo "GSCORE_NO_PROXY=$ENV_no_proxy" >> .env 2>/dev/null || true
             fi
         fi
     fi
@@ -642,7 +642,7 @@ configure_proxy() {
     # 显示当前代理配置
     if [ "$DELETE_PROXY" = "true" ]; then
         echo "${GREEN}✓ 代理配置已删除${NC}"
-        [ -n "$ENV_no_proxy" ] && echo "  no_proxy: $ENV_no_proxy (已保留)"
+        [ -n "$ENV_no_proxy" ] && echo "  NO_PROXY: $ENV_no_proxy (已保留)"
     elif [ -n "$ENV_http_proxy" ] || [ -n "$ENV_https_proxy" ]; then
         echo "${GREEN}✓ 代理配置已更新${NC}"
         [ -n "$ENV_http_proxy" ] && echo "  http_proxy: $ENV_http_proxy"
@@ -650,7 +650,7 @@ configure_proxy() {
         [ -n "$ENV_no_proxy" ] && echo "  no_proxy: $ENV_no_proxy"
     else
         echo "${GREEN}✓ 未配置代理${NC}"
-        [ -n "$ENV_no_proxy" ] && echo "  no_proxy: $ENV_no_proxy"
+        [ -n "$ENV_no_proxy" ] && echo "  NO_PROXY: $ENV_no_proxy"
     fi
 }
 
@@ -660,9 +660,9 @@ echo "${YELLOW}生成 .env 文件...${NC}"
 # 如果 .env 存在，先读取现有代理配置
 if [ -f ".env" ]; then
     # 保留现有的代理配置
-    EXISTING_HTTP_PROXY=$(grep "^http_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
-    EXISTING_HTTPS_PROXY=$(grep "^https_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
-    EXISTING_NO_PROXY=$(grep "^no_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    EXISTING_HTTP_PROXY=$(grep "^GSCORE_HTTP_PROXY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    EXISTING_HTTPS_PROXY=$(grep "^GSCORE_HTTPS_PROXY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    EXISTING_NO_PROXY=$(grep "^GSCORE_NO_PROXY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
 else
     # 新文件，使用默认值
     EXISTING_HTTP_PROXY=""
@@ -670,7 +670,7 @@ else
     EXISTING_NO_PROXY=""
 fi
 
-# 只有在 no_proxy 为空时才设置为默认值（保留用户修改）
+# 只有在 GSCORE_NO_PROXY 为空时才设置为默认值（保留用户修改）
 FINAL_NO_PROXY="${EXISTING_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}"
 
 # 生成 .env 文件（保留代理配置）
@@ -680,13 +680,14 @@ cat > .env << EOF
 # 端口映射
 PORT=${PORT}
 
-# 挂载目录
+# 挂载目录（默认: $(pwd)/gsuid_core）
 MOUNT_PATH=${MOUNT_PATH}
 
 # 代理配置（可选）
-http_proxy=${EXISTING_HTTP_PROXY}
-https_proxy=${EXISTING_HTTPS_PROXY}
-no_proxy=${FINAL_NO_PROXY}
+GSCORE_HTTP_PROXY=${EXISTING_HTTP_PROXY}
+GSCORE_HTTPS_PROXY=${EXISTING_HTTPS_PROXY}
+# 不走代理的域名列表（默认已配置常用镜像源）
+GSCORE_NO_PROXY=${FINAL_NO_PROXY}
 EOF
 echo "${GREEN}✓ .env 文件已生成${NC}"
 
@@ -762,16 +763,16 @@ services:
     ports:
       - "${PORT:-8765}:8765"
     volumes:
-      - ${MOUNT_PATH}:/gsuid_core
+      - ${MOUNT_PATH:-${PWD}/gsuid_core}:/gsuid_core
       - venv-data:/venv
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - PYTHONUNBUFFERED=1
-      - http_proxy=${http_proxy:-}
-      - https_proxy=${https_proxy:-}
-      - no_proxy=${no_proxy:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}
+      - http_proxy=${GSCORE_HTTP_PROXY:-}
+      - https_proxy=${GSCORE_HTTPS_PROXY:-}
+      - no_proxy=${GSCORE_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}
 
 volumes:
   venv-data:
@@ -788,16 +789,16 @@ services:
     ports:
       - "\${PORT:-8765}:8765"
     volumes:
-      - \${MOUNT_PATH}:/gsuid_core
+      - \${MOUNT_PATH:-\${PWD}/gsuid_core}:/gsuid_core
       - venv-data:/venv
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - PYTHONUNBUFFERED=1
-      - http_proxy=\${http_proxy:-}
-      - https_proxy=\${https_proxy:-}
-      - no_proxy=\${no_proxy:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}
+      - http_proxy=\${GSCORE_HTTP_PROXY:-}
+      - https_proxy=\${GSCORE_HTTPS_PROXY:-}
+      - no_proxy=\${GSCORE_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}
 
 volumes:
   venv-data:
@@ -873,7 +874,7 @@ echo ""
 
 # 检查是否配置了代理，如果配置了则提示 git 代理
 if [ -f ".env" ]; then
-    FINAL_HTTP_PROXY=$(grep "^http_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" | grep -v '^$' || echo "")
+    FINAL_HTTP_PROXY=$(grep "^GSCORE_HTTP_PROXY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" | grep -v '^$' || echo "")
     if [ -n "$FINAL_HTTP_PROXY" ]; then
         echo "${YELLOW}提示：如需在容器内使用 git 代理，请在容器运行后手动执行：${NC}"
         echo "  docker exec -it gsuid_core git config --global http.proxy $FINAL_HTTP_PROXY"
