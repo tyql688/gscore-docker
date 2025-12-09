@@ -30,7 +30,7 @@ else
 fi
 
 # 脚本版本
-VERSION="1.0.7"
+VERSION="1.0.8"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -535,8 +535,8 @@ echo ""
 if [ "$USE_LOCAL_BUILD" = "true" ]; then
     echo "${YELLOW}生成 Dockerfile...${NC}"
     cat > Dockerfile << 'EOF'
-# 基于 astral/uv 的 Python 3.12 Alpine 镜像
-FROM astral/uv:python3.12-alpine
+# 基于 astral/uv 的 Python 3.12 Bookworm-slim 镜像
+FROM astral/uv:python3.12-bookworm-slim
 
 # 设置工作目录
 WORKDIR /gsuid_core
@@ -545,14 +545,14 @@ WORKDIR /gsuid_core
 EXPOSE 8765
 
 # 安装系统依赖（包括编译工具和时区数据）
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     git \
     curl \
     gcc \
     python3-dev \
-    musl-dev \
-    linux-headers \
+    build-essential \
     tzdata && \
+    rm -rf /var/lib/apt/lists/* && \
     ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
 
 # 在镜像层创建 venv（/venv 不会被挂载覆盖）
@@ -563,6 +563,9 @@ ENV UV_PROJECT_ENVIRONMENT=/venv
 
 # 设置 PATH，优先从 /venv/bin 查找可执行文件
 ENV PATH="/venv/bin:$PATH"
+
+# 启用绑定挂载缓存
+ENV UV_LINK_MODE=copy
 
 # 启动命令
 CMD ["uv", "run", "--python", "/venv/bin/python", "core", "--host", "0.0.0.0"]
@@ -678,6 +681,15 @@ echo "    docker-compose up -d --build"
 echo ""
 echo "  ${GREEN}停止服务:${NC}"
 echo "    docker-compose down"
+echo ""
+echo "  ${GREEN}停止并删除虚拟环境数据:${NC}"
+echo "    docker-compose down --volumes"
+echo ""
+echo "  ${GREEN}进入容器 shell:${NC}"
+echo "    docker exec -it gsuid_core sh"
+echo ""
+echo "  ${GREEN}安装 Python 包 (示例: tqdm):${NC}"
+echo "    docker exec -it gsuid_core sh -c 'uv pip install tqdm'"
 echo ""
 echo "  ${GREEN}查看状态:${NC}"
 echo "    docker-compose ps"
