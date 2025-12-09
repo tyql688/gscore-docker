@@ -30,7 +30,7 @@ else
 fi
 
 # 脚本版本
-VERSION="1.0.8"
+VERSION="1.0.9"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -531,6 +531,162 @@ install_plugins
 
 echo ""
 
+# 配置代理设置
+configure_proxy() {
+    # 初始化变量
+    DELETE_PROXY="false"
+
+    # 尝试从 .env 读取代理配置
+    ENV_http_proxy=$(grep "^http_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    ENV_https_proxy=$(grep "^https_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    ENV_no_proxy=$(grep "^no_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+
+    if [ -n "$ENV_http_proxy" ] || [ -n "$ENV_https_proxy" ]; then
+        # 已配置代理
+        echo "${YELLOW}检测到已配置代理:${NC}"
+        [ -n "$ENV_http_proxy" ] && echo "  http_proxy: $ENV_http_proxy"
+        [ -n "$ENV_https_proxy" ] && echo "  https_proxy: $ENV_https_proxy"
+        [ -n "$ENV_no_proxy" ] && echo "  no_proxy: $ENV_no_proxy"
+        echo ""
+        printf "是否更改或删除代理配置? [y/N]: "
+        read -r change_proxy
+
+        if [ "$change_proxy" = "y" ] || [ "$change_proxy" = "Y" ]; then
+            printf "请选择: 1)更改代理地址  2)删除代理配置 [1-2]: "
+            read -r proxy_choice
+            case "$proxy_choice" in
+                1)
+                    printf "请输入代理端口 (默认 7890): "
+                    read -r proxy_port
+                    proxy_port=${proxy_port:-7890}
+                    ENV_http_proxy="http://host.docker.internal:$proxy_port"
+                    ENV_https_proxy="http://host.docker.internal:$proxy_port"
+                    # 只有在用户明确选择修改代理时，才设置默认 no_proxy
+                    if [ -z "$ENV_no_proxy" ]; then
+                        ENV_no_proxy="localhost,127.0.0.1,.local,cnb.cool"
+                    fi
+                    ;;
+                2)
+                    # 删除代理配置（保留 no_proxy）
+                    DELETE_PROXY="true"
+                    ;;
+                *)
+                    echo "${YELLOW}保持当前代理配置${NC}"
+                    ;;
+            esac
+        fi
+    else
+        # 未配置代理
+        echo "${YELLOW}是否需要配置代理? [y/N]:${NC}"
+        printf "请输入选择: "
+        read -r setup_proxy
+
+        if [ "$setup_proxy" = "y" ] || [ "$setup_proxy" = "Y" ]; then
+            printf "请输入代理端口 (默认 7890): "
+            read -r proxy_port
+            proxy_port=${proxy_port:-7890}
+            ENV_http_proxy="http://host.docker.internal:$proxy_port"
+            ENV_https_proxy="http://host.docker.internal:$proxy_port"
+            # 首次配置代理时，如果 no_proxy 为空才设置默认值
+            if [ -z "$ENV_no_proxy" ]; then
+                ENV_no_proxy="localhost,127.0.0.1,.local,cnb.cool"
+            fi
+        fi
+    fi
+
+    # 更新 .env 文件中的代理配置
+    if [ "$DELETE_PROXY" = "true" ]; then
+        # 删除代理配置（保留 no_proxy）
+        sed -i.bak '/^http_proxy=/d' .env 2>/dev/null || true
+        sed -i.bak '/^https_proxy=/d' .env 2>/dev/null || true
+        # 保留 no_proxy 行，不修改
+    else
+        # 正常更新代理配置
+        if [ -n "$ENV_http_proxy" ]; then
+            if grep -q "^http_proxy=" .env 2>/dev/null; then
+                sed -i.bak "s|^http_proxy=.*|http_proxy=$ENV_http_proxy|" .env 2>/dev/null || true
+            else
+                echo "http_proxy=$ENV_http_proxy" >> .env 2>/dev/null || true
+            fi
+        fi
+
+        if [ -n "$ENV_https_proxy" ]; then
+            if grep -q "^https_proxy=" .env 2>/dev/null; then
+                sed -i.bak "s|^https_proxy=.*|https_proxy=$ENV_https_proxy|" .env 2>/dev/null || true
+            else
+                echo "https_proxy=$ENV_https_proxy" >> .env 2>/dev/null || true
+            fi
+        fi
+
+        # 只有在明确设置了 no_proxy 时才更新（保留用户修改）
+        if [ -n "$ENV_no_proxy" ]; then
+            if grep -q "^no_proxy=" .env 2>/dev/null; then
+                sed -i.bak "s|^no_proxy=.*|no_proxy=$ENV_no_proxy|" .env 2>/dev/null || true
+            else
+                echo "no_proxy=$ENV_no_proxy" >> .env 2>/dev/null || true
+            fi
+        fi
+    fi
+
+    # 清理临时文件
+    rm -f .env.bak 2>/dev/null || true
+
+    # 显示当前代理配置
+    if [ "$DELETE_PROXY" = "true" ]; then
+        echo "${GREEN}✓ 代理配置已删除${NC}"
+        [ -n "$ENV_no_proxy" ] && echo "  no_proxy: $ENV_no_proxy (已保留)"
+    elif [ -n "$ENV_http_proxy" ] || [ -n "$ENV_https_proxy" ]; then
+        echo "${GREEN}✓ 代理配置已更新${NC}"
+        [ -n "$ENV_http_proxy" ] && echo "  http_proxy: $ENV_http_proxy"
+        [ -n "$ENV_https_proxy" ] && echo "  https_proxy: $ENV_https_proxy"
+        [ -n "$ENV_no_proxy" ] && echo "  no_proxy: $ENV_no_proxy"
+    else
+        echo "${GREEN}✓ 未配置代理${NC}"
+        [ -n "$ENV_no_proxy" ] && echo "  no_proxy: $ENV_no_proxy"
+    fi
+}
+
+# 生成或更新 .env 文件（保留现有代理配置）
+echo "${YELLOW}生成 .env 文件...${NC}"
+
+# 如果 .env 存在，先读取现有代理配置
+if [ -f ".env" ]; then
+    # 保留现有的代理配置
+    EXISTING_HTTP_PROXY=$(grep "^http_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    EXISTING_HTTPS_PROXY=$(grep "^https_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+    EXISTING_NO_PROXY=$(grep "^no_proxy=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+else
+    # 新文件，使用默认值
+    EXISTING_HTTP_PROXY=""
+    EXISTING_HTTPS_PROXY=""
+    EXISTING_NO_PROXY=""
+fi
+
+# 只有在 no_proxy 为空时才设置为默认值（保留用户修改）
+FINAL_NO_PROXY="${EXISTING_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool}"
+
+# 生成 .env 文件（保留代理配置）
+cat > .env << EOF
+# gsuid_core 环境配置
+
+# 端口映射
+PORT=${PORT}
+
+# 挂载目录
+MOUNT_PATH=${MOUNT_PATH}
+
+# 代理配置（可选）
+http_proxy=${EXISTING_HTTP_PROXY}
+https_proxy=${EXISTING_HTTPS_PROXY}
+no_proxy=${FINAL_NO_PROXY}
+EOF
+echo "${GREEN}✓ .env 文件已生成${NC}"
+
+# 调用代理配置
+configure_proxy
+
+echo ""
+
 # 生成配置文件
 if [ "$USE_LOCAL_BUILD" = "true" ]; then
     echo "${YELLOW}生成 Dockerfile...${NC}"
@@ -573,19 +729,6 @@ EOF
     echo "${GREEN}✓ Dockerfile 已生成${NC}"
 fi
 
-# 生成 .env 文件
-echo "${YELLOW}生成 .env 文件...${NC}"
-cat > .env << EOF
-# gsuid_core 环境配置
-
-# 端口映射
-PORT=${PORT}
-
-# 挂载目录
-MOUNT_PATH=${MOUNT_PATH}
-EOF
-echo "${GREEN}✓ .env 文件已生成${NC}"
-
 echo "${YELLOW}生成 docker-compose.yaml 文件...${NC}"
 
 # 生成 docker-compose.yaml 文件 (如果需要更新)
@@ -608,8 +751,13 @@ services:
       - ${MOUNT_PATH}:/gsuid_core
       - venv-data:/venv
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - PYTHONUNBUFFERED=1
+      - http_proxy=${http_proxy:-}
+      - https_proxy=${https_proxy:-}
+      - no_proxy=${no_proxy:-localhost,127.0.0.1,.local,cnb.cool}
 
 volumes:
   venv-data:
@@ -629,8 +777,13 @@ services:
       - \${MOUNT_PATH}:/gsuid_core
       - venv-data:/venv
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - PYTHONUNBUFFERED=1
+      - http_proxy=\${http_proxy:-}
+      - https_proxy=\${https_proxy:-}
+      - no_proxy=\${no_proxy:-localhost,127.0.0.1,.local,cnb.cool}
 
 volumes:
   venv-data:
@@ -690,6 +843,9 @@ echo "    docker exec -it gsuid_core sh"
 echo ""
 echo "  ${GREEN}安装 Python 包 (示例: tqdm):${NC}"
 echo "    docker exec -it gsuid_core sh -c 'uv pip install tqdm'"
+echo ""
+echo "  ${GREEN}测试代理连接:${NC}"
+echo "    docker exec -it gsuid_core sh -c 'curl https://api.ipify.org?format=json'"
 echo ""
 echo "  ${GREEN}查看状态:${NC}"
 echo "    docker-compose ps"
