@@ -3,6 +3,7 @@
   web_trigger_docker:
     - docker:
         image: astral/uv:python3.12-bookworm-slim
+      import: https://cnb.cool/gscore-mirror/keycode/-/blob/main/docker.io.yml
       services:
         - name: docker
           options:
