@@ -30,7 +30,7 @@ else
 fi
 
 # 脚本版本
-VERSION="1.2.0"
+VERSION="1.2.1"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 检查更新
@@ -112,28 +112,26 @@ fi
 # 选择部署方式 (如果未确定)
 if [ -z "$USE_LOCAL_BUILD" ]; then
     echo "${YELLOW}选择部署方式:${NC}"
-    echo "  1) 构建本地镜像 (使用本地 Dockerfile)"
-    echo "  2) 使用远程镜像 (从镜像仓库拉取)"
+    echo "  1) 使用远程镜像 (从镜像仓库拉取)"
+    echo "  2) 构建本地镜像 (使用本地 Dockerfile)"
     echo ""
     printf "请输入选择 [1-2]: "
     read -r deploy_choice
 
     case "$deploy_choice" in
         1)
-            USE_LOCAL_BUILD="true"
-            echo "${GREEN}✓ 将构建本地镜像${NC}"
-            ;;
-        2)
             USE_LOCAL_BUILD="false"
             echo "${GREEN}✓ 将使用远程镜像${NC}"
             # 选择远程镜像
             echo ""
             echo "${YELLOW}选择远程镜像源:${NC}"
             echo "  1) CNB 加速 (docker.cnb.cool/gscore-mirror/gscore-docker:latest)"
-            echo "  2) Docker Hub (tyql688/gscore:latest)"
-            echo "  3) 自定义镜像地址"
+            echo "  2) CNB Playwright (docker.cnb.cool/gscore-mirror/gscore-docker/playwright:latest)"
+            echo "  3) Docker Hub (tyql688/gscore:latest)"
+            echo "  4) Docker Hub Playwright (tyql688/gscore-playwright:latest)"
+            echo "  5) 自定义镜像地址"
             echo ""
-            printf "请输入选择 [1-3]: "
+            printf "请输入选择 [1-5]: "
             read -r image_choice
 
             case "$image_choice" in
@@ -142,10 +140,18 @@ if [ -z "$USE_LOCAL_BUILD" ]; then
                     echo "${GREEN}✓ 使用 CNB 加速镜像${NC}"
                     ;;
                 2)
+                    REMOTE_IMAGE="docker.cnb.cool/gscore-mirror/gscore-docker/playwright:latest"
+                    echo "${GREEN}✓ 使用 CNB Playwright 镜像${NC}"
+                    ;;
+                3)
                     REMOTE_IMAGE="tyql688/gscore:latest"
                     echo "${GREEN}✓ 使用 Docker Hub 镜像${NC}"
                     ;;
-                3)
+                4)
+                    REMOTE_IMAGE="tyql688/gscore-playwright:latest"
+                    echo "${GREEN}✓ 使用 Docker Hub Playwright 镜像${NC}"
+                    ;;
+                5)
                     printf "请输入镜像地址: "
                     read -r image_input
                     if [ -z "$image_input" ]; then
@@ -160,6 +166,10 @@ if [ -z "$USE_LOCAL_BUILD" ]; then
                     exit 1
                     ;;
             esac
+            ;;
+        2)
+            USE_LOCAL_BUILD="true"
+            echo "${GREEN}✓ 将构建本地镜像${NC}"
             ;;
         *)
             echo "${RED}错误: 无效选择${NC}" >&2
@@ -265,20 +275,20 @@ if [ ! -d "$MOUNT_PATH" ] || [ -z "$(ls -A "$MOUNT_PATH" 2>/dev/null)" ]; then
     if [ "$clone_choice" != "n" ] && [ "$clone_choice" != "N" ]; then
         echo ""
         echo "${YELLOW}选择源码源:${NC}"
-        echo "  1) GitHub (https://github.com/Genshin-bots/gsuid_core)"
-        echo "  2) CNB 加速 (https://cnb.cool/gscore-mirror/gsuid_core)"
+        echo "  1) CNB 加速 (https://cnb.cool/gscore-mirror/gsuid_core)"
+        echo "  2) GitHub (https://github.com/Genshin-bots/gsuid_core)"
         echo ""
         printf "请输入选择 [1-2]: "
         read -r source_choice
 
         case "$source_choice" in
             1)
-                SOURCE_URL="https://github.com/Genshin-bots/gsuid_core.git"
-                echo "${GREEN}✓ 使用 GitHub 源${NC}"
-                ;;
-            2)
                 SOURCE_URL="https://cnb.cool/gscore-mirror/gsuid_core.git"
                 echo "${GREEN}✓ 使用 CNB 加速源${NC}"
+                ;;
+            2)
+                SOURCE_URL="https://github.com/Genshin-bots/gsuid_core.git"
+                echo "${GREEN}✓ 使用 GitHub 源${NC}"
                 ;;
             *)
                 echo "${RED}错误: 无效选择${NC}" >&2
@@ -309,15 +319,15 @@ install_plugins() {
 
     echo ""
     echo "${YELLOW}选择插件源:${NC}"
-    echo "  1) GitHub"
-    echo "  2) CNB 加速"
+    echo "  1) CNB 加速"
+    echo "  2) GitHub"
     echo ""
     printf "请输入选择 [1-2]: "
     read -r plugin_source
 
     case "$plugin_source" in
-        1) USE_CNB="false" ;;
-        2) USE_CNB="true" ;;
+        1) USE_CNB="true" ;;
+        2) USE_CNB="false" ;;
         *)
             echo "${RED}错误: 无效选择${NC}" >&2
             return
@@ -677,6 +687,9 @@ FINAL_NO_PROXY="${EXISTING_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool,mirrors
 cat > .env << EOF
 # gsuid_core 环境配置
 
+# 镜像配置（远程镜像模式使用）
+GSCORE_IMAGE=${REMOTE_IMAGE:-docker.cnb.cool/gscore-mirror/gscore-docker:latest}
+
 # 端口映射
 PORT=${PORT}
 
@@ -775,27 +788,27 @@ volumes:
   venv-data:
 EOF
     else
-        cat > docker-compose.yaml << EOF
+        cat > docker-compose.yaml << 'EOF'
 # gsuid_core Docker Compose 配置
 # 部署方式: 远程镜像
 
 services:
   gsuid_core:
-    image: ${REMOTE_IMAGE}
+    image: ${GSCORE_IMAGE:-docker.cnb.cool/gscore-mirror/gscore-docker:latest}
     container_name: gsuid_core
     ports:
-      - "\${PORT:-8765}:8765"
+      - "${PORT:-8765}:8765"
     volumes:
-      - \${MOUNT_PATH:-\${PWD}/gsuid_core}:/gsuid_core
+      - ${MOUNT_PATH:-${PWD}/gsuid_core}:/gsuid_core
       - venv-data:/venv
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - PYTHONUNBUFFERED=1
-      - http_proxy=\${GSCORE_HTTP_PROXY:-}
-      - https_proxy=\${GSCORE_HTTPS_PROXY:-}
-      - no_proxy=\${GSCORE_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}
+      - http_proxy=${GSCORE_HTTP_PROXY:-}
+      - https_proxy=${GSCORE_HTTPS_PROXY:-}
+      - no_proxy=${GSCORE_NO_PROXY:-localhost,127.0.0.1,.local,cnb.cool,mirrors.aliyun.com,pypi.tuna.tsinghua.edu.cn,mirrors.volces.com}
 
 volumes:
   venv-data:
