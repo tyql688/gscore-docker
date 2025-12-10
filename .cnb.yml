@@ -1,7 +1,9 @@
 # 匹配所有分支名
 "**":
   web_trigger_docker:
-    - services:
+    - runner:
+        tags: cnb:arch:amd64:containerd-snapshotter
+      services:
         - docker
       env:
         BASE_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
