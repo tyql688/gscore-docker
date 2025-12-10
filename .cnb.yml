@@ -12,7 +12,15 @@
         BASE_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
         PLAYWRIGHT_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/playwright:latest
       stages:
-        - name: base
+        - name: docker.io login
+          script: docker login -u ${DOCKER_USER} -p "${DOCKER_PWD}" ${DOCKER_REGISTRY}
+
+        - name: cnb.cool base
           script: docker buildx build -t ${BASE_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
-        - name: playwright
+        - name: docker.io base
+          script: docker buildx build -t tyql688/gscore:latest --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
+
+        - name: cnb.cool playwright
           script: docker buildx build -t ${PLAYWRIGHT_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .
+        - name: docker.io playwright
+          script: docker buildx build -t tyql688/gscore-playwright:latest --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .
