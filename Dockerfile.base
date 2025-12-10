@@ -26,9 +26,7 @@ RUN apt-get update && apt-get install -y \
     ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
 
 # 配置 git safe.directory，防止容器内 ownership 报错
-RUN git config --global --add safe.directory '/gsuid_core' && \
-    git config --global --add safe.directory '/gsuid_core/*' && \
-    git config --global --add safe.directory '/venv'
+RUN git config --global --add safe.directory '*'
 
 # 在镜像层创建 venv
 RUN uv venv --seed /venv

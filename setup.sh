@@ -6,7 +6,7 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.3.0"
+VERSION="1.3.1"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
@@ -918,9 +918,7 @@ RUN apt-get update && apt-get install -y \
     rm -rf /var/lib/apt/lists/* && \
     ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
 
-RUN git config --global --add safe.directory '/gsuid_core' && \
-    git config --global --add safe.directory '/gsuid_core/*' && \
-    git config --global --add safe.directory '/venv'
+RUN git config --global --add safe.directory '*'
 
 RUN uv venv --seed /venv
 
