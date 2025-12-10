@@ -59,14 +59,12 @@ show_help() {
     echo "  ./setup.sh -h       显示帮助信息"
     echo ""
     echo "${YELLOW}-y 默认配置:${NC}"
-    echo "  - Docker镜像源
-  - CNB 加速
+    echo "  - Docker镜像源: CNB 加速
   - 端口: 8765
   - 目录: ${PWD}/gsuid_core
   - 源码源: CNB 加速
   - 不安装插件
   - 不配置代理"
-    echo "  - 源码源: CNB 加速 | 不安装插件 | 不配置代理"
     echo ""
     echo "${YELLOW}-i 模式说明:${NC}"
     echo "  - 交互式选择要安装的插件"
