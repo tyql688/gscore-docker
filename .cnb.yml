@@ -13,8 +13,11 @@
         BASE_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
         PLAYWRIGHT_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/playwright:latest
       stages:
+        - name: test
+          script: echo "DOCKER_USER=${DOCKER_USER}, DOCKER_PWD=${DOCKER_PWD}, DOCKER_REGISTRY=${DOCKER_REGISTRY}"
+
         - name: docker.io login
-          script: printf "%s\n" "${DOCKER_PWD}" | docker login --username="${DOCKER_USER}" --password-stdin "${DOCKER_REGISTRY}"
+          script: docker login -u ${DOCKER_USER} -p "${DOCKER_PWD}" ${DOCKER_REGISTRY}
 
         - name: cnb.cool base
           script: docker buildx build -t ${BASE_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
