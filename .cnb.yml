@@ -2,7 +2,7 @@
 "**":
   web_trigger_docker:
     - runner:
-        tags: cnb:arch:amd64:containerd-snapshotter
+        tags: cnb:arch:amd64
       services:
         - docker
       env:
