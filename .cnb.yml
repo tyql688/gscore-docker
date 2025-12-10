@@ -3,7 +3,7 @@
   web_trigger_docker:
     - docker:
         image: astral/uv:python3.12-bookworm-slim
-      import: https://cnb.cool/gscore-mirror/keycode/-/blob/main/docker.io.yml
+      imports: https://cnb.cool/gscore-mirror/keycode/-/blob/main/docker.io.yml
       services:
         - name: docker
           options:
@@ -13,9 +13,6 @@
         BASE_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
         PLAYWRIGHT_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/playwright:latest
       stages:
-        - name: test
-          script: echo "DOCKER_USER=${DOCKER_USER}, DOCKER_PWD=${DOCKER_PWD}, DOCKER_REGISTRY=${DOCKER_REGISTRY}"
-
         - name: docker.io login
           script: docker login -u ${DOCKER_USER} -p "${DOCKER_PWD}" ${DOCKER_REGISTRY}
 
