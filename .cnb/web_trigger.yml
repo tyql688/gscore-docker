@@ -1,4 +1,5 @@
 branch:
   - buttons:
       - name: Docker镜像构建&推送
+        description: 构建&推送
         event: web_trigger_docker
