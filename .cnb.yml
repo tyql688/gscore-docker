@@ -1,0 +1,15 @@
+# 匹配所有分支名
+"**":
+  web_trigger_docker:
+    - services:
+        - docker
+      env:
+        BASE_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
+        PLAYWRIGHT_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/playwright:latest
+      stages:
+        - name: docker login
+          script: docker login -u ${CNB_TOKEN_USER_NAME} -p "${CNB_TOKEN}" ${CNB_DOCKER_REGISTRY}
+        - name: base
+          script: docker buildx build -t ${BASE_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
+        - name: playwright
+          script: docker buildx build -t ${PLAYWRIGHT_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .
