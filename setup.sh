@@ -211,11 +211,9 @@ select_remote_image() {
     echo "${YELLOW}选择远程镜像源:${NC}"
     echo "  1) CNB 加速 (docker.cnb.cool/gscore-mirror/gscore-docker:latest)"
     echo "  2) CNB Playwright (docker.cnb.cool/gscore-mirror/gscore-docker/playwright:latest)"
-    echo "  3) Docker Hub (tyql688/gscore:latest)"
-    echo "  4) Docker Hub Playwright (tyql688/gscore-playwright:latest)"
-    echo "  5) 自定义镜像地址"
+    echo "  3) 自定义镜像地址"
     echo ""
-    printf "请输入选择 [1-5]: "
+    printf "请输入选择 [1-3]: "
     read -r image_choice
 
     case "$image_choice" in
@@ -228,14 +226,6 @@ select_remote_image() {
             echo "${GREEN}✓ 使用 CNB Playwright 镜像${NC}"
             ;;
         3)
-            REMOTE_IMAGE="tyql688/gscore:latest"
-            echo "${GREEN}✓ 使用 Docker Hub 镜像${NC}"
-            ;;
-        4)
-            REMOTE_IMAGE="tyql688/gscore-playwright:latest"
-            echo "${GREEN}✓ 使用 Docker Hub Playwright 镜像${NC}"
-            ;;
-        5)
             printf "请输入镜像地址: "
             read -r image_input
             if [ -z "$image_input" ]; then

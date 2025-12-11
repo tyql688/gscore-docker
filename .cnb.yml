@@ -2,7 +2,7 @@
   web_trigger_docker:
     - docker:
         image: docker.cnb.cool/gscore-mirror/docker-sync/astral-uv:python3.12-bookworm-slim
-      imports: https://cnb.cool/gscore-mirror/keycode/-/blob/main/docker.io.yml
+      # imports: https://cnb.cool/gscore-mirror/keycode/-/blob/main/docker.io.yml
       services:
         - name: docker
           options:
@@ -12,12 +12,12 @@
         # 定义变量
         CNB_LITE: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
         CNB_PW: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/playwright:latest
-        HUB_LITE: tyql688/gscore:latest
-        HUB_PW: tyql688/gscore-playwright:latest
+        # HUB_LITE: tyql688/gscore:latest
+        # HUB_PW: tyql688/gscore-playwright:latest
       stages:
-        - name: docker login
-          # 先登录 DockerHub，CNB 默认应该是免密的或者环境已经注入
-          script: docker login -u ${DOCKER_USER} -p "${DOCKER_PWD}" ${DOCKER_REGISTRY}
+        # - name: docker login
+        #   # 先登录 DockerHub，CNB 默认应该是免密的或者环境已经注入
+        #   script: docker login -u ${DOCKER_USER} -p "${DOCKER_PWD}" ${DOCKER_REGISTRY}
 
         - name: build lite (Dual Push)
           # 关键点：一行命令，两个 -t，一次构建推送到两个仓库
@@ -25,7 +25,6 @@
             docker buildx build 
             --target lite 
             -t ${CNB_LITE} 
-            -t ${HUB_LITE} 
             --platform linux/amd64,linux/arm64 
             --push 
             -f Dockerfile.base .
@@ -35,7 +34,6 @@
             docker buildx build 
             --target playwright 
             -t ${CNB_PW} 
-            -t ${HUB_PW} 
             --platform linux/amd64,linux/arm64 
             --push 
             -f Dockerfile.base .
