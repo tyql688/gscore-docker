@@ -2,8 +2,8 @@
 "**":
   web_trigger_docker:
     - docker:
-        image: astral/uv:python3.12-bookworm-slim
-      # imports: https://cnb.cool/gscore-mirror/keycode/-/blob/main/docker.io.yml
+        image: docker.cnb.cool/gscore-mirror/docker-sync/astral-uv:python3.12-bookworm-slim
+      imports: https://cnb.cool/gscore-mirror/keycode/-/blob/main/docker.io.yml
       services:
         - name: docker
           options:
@@ -13,15 +13,17 @@
         BASE_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
         PLAYWRIGHT_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/playwright:latest
       stages:
-        # - name: docker.io login
-        #   script: docker login -u ${DOCKER_USER} -p "${DOCKER_PWD}" ${DOCKER_REGISTRY}
-
-        - name: cnb.cool base
-          script: docker buildx build -t ${BASE_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
-        # - name: docker.io base
-        #   script: docker buildx build -t tyql688/gscore:latest --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
+        - name: cnb.cool lite
+          script: docker buildx build --target lite -t ${BASE_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
 
         - name: cnb.cool playwright
-          script: docker buildx build -t ${PLAYWRIGHT_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .
-        # - name: docker.io playwright
-        #   script: docker buildx build -t tyql688/gscore-playwright:latest --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .
+          script: docker buildx build --target playwright -t ${PLAYWRIGHT_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .
+
+        - name: docker.io login
+          script: docker login -u ${DOCKER_USER} -p "${DOCKER_PWD}" ${DOCKER_REGISTRY}
+
+        - name: docker.io lite
+          script: docker buildx build --target lite -t tyql688/gscore:latest --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
+
+        - name: docker.io playwright
+          script: docker buildx build --target playwright -t tyql688/gscore-playwright:latest --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .

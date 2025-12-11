@@ -6,7 +6,7 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.3.1"
+VERSION="1.3.2"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
@@ -903,25 +903,70 @@ generate_dockerfile() {
 
     echo "${YELLOW}生成 Dockerfile...${NC}"
     cat > Dockerfile << 'EOF'
-# 基于 astral/uv 的 Python 3.12 Bookworm-slim 镜像
-FROM astral/uv:python3.12-bookworm-slim
+# ========================================== 
+# Stage 1: Base (最基础的系统环境)
+# 包含：Python, 时区, 编译工具, Git, 空虚拟环境
+# ========================================== 
+FROM docker.cnb.cool/gscore-mirror/docker-sync/astral-uv:python3.12-bookworm-slim AS base
 
-WORKDIR /gsuid_core
+# 暴露端口
 EXPOSE 8765
 
+WORKDIR /gsuid_core
+
+# 环境变量
 ENV UV_PROJECT_ENVIRONMENT=/venv
 ENV PATH="/venv/bin:$PATH"
 ENV UV_LINK_MODE=copy
 
+# 安装最基础的系统依赖 + 创建虚拟环境
 RUN apt-get update && apt-get install -y \
-    git curl gcc python3-dev build-essential tzdata && \
-    rm -rf /var/lib/apt/lists/* && \
-    ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
+    git \
+    curl \
+    gcc \
+    python3-dev \
+    build-essential \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo Asia/Shanghai > /etc/timezone \
+    && uv venv /venv
 
+# 配置 git safe.directory
 RUN git config --global --add safe.directory '*'
 
-RUN uv venv --seed /venv
+# ========================================== 
+# Stage 2: Lite (纯 Python 环境)
+# Target: lite
+# ========================================== 
+FROM base AS lite
 
+# 启动命令
+CMD ["uv", "run", "--python", "/venv/bin/python", "core", "--host", "0.0.0.0"]
+
+# ========================================== 
+# Stage 3: Playwright (浏览器环境 - 默认)
+# Target: playwright
+# ========================================== 
+FROM base AS playwright
+
+# 设置浏览器全局路径
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# 安装 Playwright 运行所需的额外依赖 (中文字体 + 浏览器依赖)
+RUN apt-get update && apt-get install -y \
+    fonts-noto-cjk \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 1. 安装 Playwright 库到 venv (venv 已在 base 阶段创建)
+# 2. 下载 Chromium 及其依赖
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install playwright && \
+    playwright install --with-deps chromium && \
+    rm -rf /var/lib/apt/lists/*
+
+# 启动命令
 CMD ["uv", "run", "--python", "/venv/bin/python", "core", "--host", "0.0.0.0"]
 EOF
     echo "${GREEN}✓ Dockerfile 已生成${NC}"
@@ -948,6 +993,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: playwright
     image: gscore:local
     container_name: gsuid_core
     ports:
