@@ -1,4 +1,3 @@
-# https://docs.cnb.cool/zh/build/grammar.html#service-docker
 "**":
   web_trigger_docker:
     - docker:
@@ -10,20 +9,33 @@
             rootlessBuildkitd:
               enabled: true
       env:
-        BASE_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
-        PLAYWRIGHT_IMAGE_TAG: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/playwright:latest
+        # 定义变量
+        CNB_LITE: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
+        CNB_PW: ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/playwright:latest
+        HUB_LITE: tyql688/gscore:latest
+        HUB_PW: tyql688/gscore-playwright:latest
       stages:
-        - name: cnb.cool lite
-          script: docker buildx build --target lite -t ${BASE_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
-
-        - name: cnb.cool playwright
-          script: docker buildx build --target playwright -t ${PLAYWRIGHT_IMAGE_TAG} --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .
-
-        - name: docker.io login
+        - name: docker login
+          # 先登录 DockerHub，CNB 默认应该是免密的或者环境已经注入
           script: docker login -u ${DOCKER_USER} -p "${DOCKER_PWD}" ${DOCKER_REGISTRY}
 
-        - name: docker.io lite
-          script: docker buildx build --target lite -t tyql688/gscore:latest --platform linux/amd64,linux/arm64 --push -f Dockerfile.base .
+        - name: build lite (Dual Push)
+          # 关键点：一行命令，两个 -t，一次构建推送到两个仓库
+          script: >
+            docker buildx build 
+            --target lite 
+            -t ${CNB_LITE} 
+            -t ${HUB_LITE} 
+            --platform linux/amd64,linux/arm64 
+            --push 
+            -f Dockerfile.base .
 
-        - name: docker.io playwright
-          script: docker buildx build --target playwright -t tyql688/gscore-playwright:latest --platform linux/amd64,linux/arm64 --push -f Dockerfile.playwright .
+        - name: build playwright (Dual Push)
+          script: >
+            docker buildx build 
+            --target playwright 
+            -t ${CNB_PW} 
+            -t ${HUB_PW} 
+            --platform linux/amd64,linux/arm64 
+            --push 
+            -f Dockerfile.base .
