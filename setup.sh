@@ -6,7 +6,7 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.3.2"
+VERSION="1.3.3"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
@@ -999,7 +999,7 @@ services:
     ports:
       - "${PORT:-8765}:8765"
     volumes:
-      - ${MOUNT_PATH:-${PWD}/gsuid_core}:/gsuid_core
+      - ${MOUNT_PATH:-./gsuid_core}:/gsuid_core
       - venv-data:/venv
     restart: unless-stopped
     extra_hosts:
@@ -1025,7 +1025,7 @@ services:
     ports:
       - "${PORT:-8765}:8765"
     volumes:
-      - ${MOUNT_PATH:-${PWD}/gsuid_core}:/gsuid_core
+      - ${MOUNT_PATH:-./gsuid_core}:/gsuid_core
       - venv-data:/venv
     restart: unless-stopped
     extra_hosts:
