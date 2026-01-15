@@ -6,13 +6,15 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.3.4"
+VERSION="1.3.5"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
 USE_LOCAL_BUILD=""
 REMOTE_IMAGE=""
 UPDATE_COMPOSE="true"
+INSTANCE_NAME=""
+DEFAULT_INSTANCE="gsuid_core"
 PORT=""
 MOUNT_PATH=""
 CURRENT_DIR="$(pwd)"
@@ -42,6 +44,32 @@ init_colors() {
     else
         RED='' GREEN='' YELLOW='' BLUE='' NC=''
     fi
+}
+
+# =============================================================================
+# 辅助工具
+# =============================================================================
+is_port_in_use() {
+    _port=$1
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -i :"$_port" >/dev/null 2>&1
+    elif command -v ss >/dev/null 2>&1; then
+        ss -tuln | grep -q ":$_port "
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -tuln | grep -q ":$_port "
+    else
+        return 1
+    fi
+}
+
+is_container_in_use() {
+    _name=$1
+    if command -v docker >/dev/null 2>&1; then
+        if docker ps -a --format '{{.Names}}' | grep -Eq "^${_name}$"; then
+            return 0
+        fi
+    fi
+    return 1
 }
 
 # =============================================================================
@@ -243,6 +271,55 @@ select_remote_image() {
 }
 
 # =============================================================================
+# 配置实例运行标识
+# =============================================================================
+configure_instance_name() {
+    if [ -f ".env" ]; then
+        ENV_INSTANCE=$(grep "^COMPOSE_PROJECT_NAME=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        if [ -n "$ENV_INSTANCE" ]; then
+            INSTANCE_NAME="$ENV_INSTANCE"
+            return
+        fi
+    fi
+
+    if [ "$AUTO_YES" = "true" ]; then
+        INSTANCE_NAME="$DEFAULT_INSTANCE"
+        if is_container_in_use "$INSTANCE_NAME"; then
+            echo "${YELLOW}默认容器名 $INSTANCE_NAME 已被占用，自动尝试下一个可用名称...${NC}"
+            _idx=1
+            while is_container_in_use "${DEFAULT_INSTANCE}_$_idx"; do
+                _idx=$((_idx+1))
+            done
+            INSTANCE_NAME="${DEFAULT_INSTANCE}_$_idx"
+        fi
+        echo "${GREEN}✓ 使用实例名称: $INSTANCE_NAME${NC}"
+        return
+    fi
+
+    while true; do
+        echo "${YELLOW}设置实例名称 (用于区分多个容器，默认: $DEFAULT_INSTANCE):${NC}"
+        printf "请输入实例名称或直接回车: "
+        read -r instance_input
+        instance_input=${instance_input:-$DEFAULT_INSTANCE}
+
+        if is_container_in_use "$instance_input"; then
+            echo "${RED}警告: 容器名 $instance_input 已被占用，这可能导致启动失败。${NC}"
+            printf "是否仍要使用该名称? [y/N]: "
+            read -r force_name
+            if [ "$force_name" = "y" ] || [ "$force_name" = "Y" ]; then
+                INSTANCE_NAME="$instance_input"
+                break
+            fi
+        else
+            INSTANCE_NAME="$instance_input"
+            echo "${GREEN}✓ 使用实例名称: $INSTANCE_NAME${NC}"
+            break
+        fi
+    done
+}
+
+
+# =============================================================================
 # 配置端口
 # =============================================================================
 configure_port() {
@@ -256,6 +333,9 @@ configure_port() {
                 return
             fi
             echo "${YELLOW}检测到已配置端口: ${ENV_PORT}${NC}"
+            if is_port_in_use "$ENV_PORT"; then
+                echo "${RED}警告: 端口 $ENV_PORT 已被占用，请确认容器是否已在运行。${NC}"
+            fi
             printf "是否修改端口? [y/N]: "
             read -r change_port
             if [ "$change_port" != "y" ] && [ "$change_port" != "Y" ]; then
@@ -268,21 +348,32 @@ configure_port() {
 
     if [ "$AUTO_YES" = "true" ]; then
         PORT="8765"
-        echo "${GREEN}✓ 使用默认端口: 8765${NC}"
+        if is_port_in_use "$PORT"; then
+            echo "${YELLOW}默认端口 8765 已被占用，自动尝试下一个可用端口...${NC}"
+            p=8765
+            while is_port_in_use "$p"; do
+                p=$((p+1))
+            done
+            PORT="$p"
+        fi
+        echo "${GREEN}✓ 使用端口: $PORT${NC}"
         return
     fi
 
-    echo "${YELLOW}设置端口号 (默认: 8765):${NC}"
-    printf "请输入端口号或直接回车使用默认值: "
-    read -r port_input
+    while true; do
+        echo "${YELLOW}设置端口号 (默认: 8765):${NC}"
+        printf "请输入端口号或直接回车使用默认值: "
+        read -r port_input
+        port_input=${port_input:-8765}
 
-    if [ -z "$port_input" ]; then
-        PORT="8765"
-        echo "${GREEN}✓ 使用默认端口: 8765${NC}"
-    else
-        PORT="$port_input"
-        echo "${GREEN}✓ 使用端口: $PORT${NC}"
-    fi
+        if is_port_in_use "$port_input"; then
+            echo "${RED}错误: 端口 $port_input 已被占用，请重新选择。${NC}"
+        else
+            PORT="$port_input"
+            echo "${GREEN}✓ 使用端口: $PORT${NC}"
+            break
+        fi
+    done
 }
 
 # =============================================================================
@@ -865,6 +956,9 @@ generate_env_file() {
     cat > .env << EOF
 # gsuid_core 环境配置
 
+# 实例名称 (用于容器隔离)
+COMPOSE_PROJECT_NAME=${INSTANCE_NAME}
+
 # 镜像配置（远程镜像模式使用）
 GSCORE_IMAGE=${REMOTE_IMAGE:-docker.cnb.cool/gscore-mirror/gscore-docker:latest}
 
@@ -985,7 +1079,7 @@ services:
       dockerfile: Dockerfile
       target: playwright
     image: gscore:local
-    container_name: gsuid_core
+    container_name: ${COMPOSE_PROJECT_NAME:-gsuid_core}
     ports:
       - "${PORT:-8765}:8765"
     volumes:
@@ -1011,7 +1105,7 @@ EOF
 services:
   gsuid_core:
     image: ${GSCORE_IMAGE:-docker.cnb.cool/gscore-mirror/gscore-docker:latest}
-    container_name: gsuid_core
+    container_name: ${COMPOSE_PROJECT_NAME:-gsuid_core}
     ports:
       - "${PORT:-8765}:8765"
     volumes:
@@ -1193,6 +1287,7 @@ main() {
     detect_existing_config
     select_deploy_mode
     echo ""
+    configure_instance_name
     configure_port
     echo ""
     configure_mount_path
