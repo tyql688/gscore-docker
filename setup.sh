@@ -6,7 +6,7 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.3.5"
+VERSION="1.3.6"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
@@ -494,7 +494,7 @@ clone_source() {
 # =============================================================================
 define_plugins() {
     # 插件配置
-    PLUGIN_COUNT=16
+    PLUGIN_COUNT=17
     PLUGIN_NAME_1="GenshinUID";      PLUGIN_DESC_1="原神"
     PLUGIN_NAME_2="StarRailUID";     PLUGIN_DESC_2="星穹铁道"
     PLUGIN_NAME_3="ZZZeroUID";       PLUGIN_DESC_3="绝区零"
@@ -511,6 +511,7 @@ define_plugins() {
     PLUGIN_NAME_14="RoverSign";      PLUGIN_DESC_14="鸣潮签到"
     PLUGIN_NAME_15="ScoreEcho";      PLUGIN_DESC_15="小维OCR识别声骸并评分"
     PLUGIN_NAME_16="TodayEcho";      PLUGIN_DESC_16="小维声骸强化模拟插件"
+    PLUGIN_NAME_17="BeyondUID";      PLUGIN_DESC_17="终末地"
 
     # 设置插件 URL
     if [ "$USE_CNB" = "true" ]; then
@@ -530,6 +531,7 @@ define_plugins() {
         PLUGIN_14="https://cnb.cool/gscore-mirror/RoverSign.git"
         PLUGIN_15="https://cnb.cool/gscore-mirror/ScoreEcho.git"
         PLUGIN_16="https://cnb.cool/gscore-mirror/TodayEcho.git"
+        PLUGIN_17="https://cnb.cool/gscore-mirror/BeyondUID.git"
     else
         PLUGIN_1="https://github.com/KimigaiiWuyi/GenshinUID.git"
         PLUGIN_2="https://github.com/baiqwerdvd/StarRailUID.git"
@@ -547,6 +549,7 @@ define_plugins() {
         PLUGIN_14="https://github.com/Loping151/RoverSign.git"
         PLUGIN_15="https://github.com/Loping151/ScoreEcho.git"
         PLUGIN_16="https://github.com/Loping151/TodayEcho.git"
+        PLUGIN_17="https://github.com/baiqwerdvd/BeyondUID.git"
     fi
 }
 
@@ -594,7 +597,7 @@ install_plugins() {
 
     # 选择状态
     SEL_1=0; SEL_2=0; SEL_3=0; SEL_4=0; SEL_5=0; SEL_6=0; SEL_7=0; SEL_8=0
-    SEL_9=0; SEL_10=0; SEL_11=0; SEL_12=0; SEL_13=0; SEL_14=0; SEL_15=0; SEL_16=0
+    SEL_9=0; SEL_10=0; SEL_11=0; SEL_12=0; SEL_13=0; SEL_14=0; SEL_15=0; SEL_16=0; SEL_17=0
 
     # 显示菜单
     show_plugin_menu() {
@@ -642,7 +645,7 @@ install_plugins() {
             continue
         fi
 
-        if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le 16 ]; then
+        if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le 17 ]; then
             eval "current=\$SEL_$choice"
             if [ "$current" = "1" ]; then
                 eval "SEL_$choice=0"
@@ -987,10 +990,10 @@ generate_dockerfile() {
 
     echo "${YELLOW}生成 Dockerfile...${NC}"
     cat > Dockerfile << 'EOF'
-# ========================================== 
+# ==========================================
 # Stage 1: Base (最基础的系统环境)
 # 包含：Python, 时区, 编译工具, Git, 空虚拟环境
-# ========================================== 
+# ==========================================
 FROM docker.cnb.cool/gscore-mirror/docker-sync/astral-uv:python3.12-bookworm-slim AS base
 
 # 暴露端口
@@ -1019,19 +1022,19 @@ RUN apt-get update && apt-get install -y \
 # 配置 git safe.directory
 RUN git config --global --add safe.directory '*'
 
-# ========================================== 
+# ==========================================
 # Stage 2: Lite (纯 Python 环境)
 # Target: lite
-# ========================================== 
+# ==========================================
 FROM base AS lite
 
 # 启动命令
 CMD ["uv", "run", "--python", "/venv/bin/python", "core", "--host", "0.0.0.0"]
 
-# ========================================== 
+# ==========================================
 # Stage 3: Playwright (浏览器环境 - 默认)
 # Target: playwright
-# ========================================== 
+# ==========================================
 FROM base AS playwright
 
 # 设置浏览器全局路径
