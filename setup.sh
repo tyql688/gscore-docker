@@ -6,7 +6,7 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.3.6"
+VERSION="1.3.7"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
@@ -494,7 +494,7 @@ clone_source() {
 # =============================================================================
 define_plugins() {
     # 插件配置
-    PLUGIN_COUNT=17
+    PLUGIN_COUNT=18
     PLUGIN_NAME_1="GenshinUID";      PLUGIN_DESC_1="原神"
     PLUGIN_NAME_2="StarRailUID";     PLUGIN_DESC_2="星穹铁道"
     PLUGIN_NAME_3="ZZZeroUID";       PLUGIN_DESC_3="绝区零"
@@ -512,6 +512,7 @@ define_plugins() {
     PLUGIN_NAME_15="ScoreEcho";      PLUGIN_DESC_15="小维OCR识别声骸并评分"
     PLUGIN_NAME_16="TodayEcho";      PLUGIN_DESC_16="小维声骸强化模拟插件"
     PLUGIN_NAME_17="BeyondUID";      PLUGIN_DESC_17="终末地"
+    PLUGIN_NAME_18="EndUID";         PLUGIN_DESC_18="小维终末地"
 
     # 设置插件 URL
     if [ "$USE_CNB" = "true" ]; then
@@ -532,6 +533,7 @@ define_plugins() {
         PLUGIN_15="https://cnb.cool/gscore-mirror/ScoreEcho.git"
         PLUGIN_16="https://cnb.cool/gscore-mirror/TodayEcho.git"
         PLUGIN_17="https://cnb.cool/gscore-mirror/BeyondUID.git"
+        PLUGIN_18="https://cnb.cool/gscore-mirror/EndUID.git"
     else
         PLUGIN_1="https://github.com/KimigaiiWuyi/GenshinUID.git"
         PLUGIN_2="https://github.com/baiqwerdvd/StarRailUID.git"
@@ -550,6 +552,7 @@ define_plugins() {
         PLUGIN_15="https://github.com/Loping151/ScoreEcho.git"
         PLUGIN_16="https://github.com/Loping151/TodayEcho.git"
         PLUGIN_17="https://github.com/baiqwerdvd/BeyondUID.git"
+        PLUGIN_18="https://github.com/Loping151/EndUID.git"
     fi
 }
 
@@ -597,7 +600,7 @@ install_plugins() {
 
     # 选择状态
     SEL_1=0; SEL_2=0; SEL_3=0; SEL_4=0; SEL_5=0; SEL_6=0; SEL_7=0; SEL_8=0
-    SEL_9=0; SEL_10=0; SEL_11=0; SEL_12=0; SEL_13=0; SEL_14=0; SEL_15=0; SEL_16=0; SEL_17=0
+    SEL_9=0; SEL_10=0; SEL_11=0; SEL_12=0; SEL_13=0; SEL_14=0; SEL_15=0; SEL_16=0; SEL_17=0; SEL_18=0
 
     # 显示菜单
     show_plugin_menu() {
@@ -645,7 +648,7 @@ install_plugins() {
             continue
         fi
 
-        if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le 17 ]; then
+        if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le 18 ]; then
             eval "current=\$SEL_$choice"
             if [ "$current" = "1" ]; then
                 eval "SEL_$choice=0"
