@@ -6,7 +6,7 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.3.7"
+VERSION="1.3.8"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
@@ -72,11 +72,23 @@ is_container_in_use() {
     return 1
 }
 
+detect_compose_command() {
+    if docker compose version >/dev/null 2>&1; then
+        DOCKER_COMPOSE="docker compose"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        DOCKER_COMPOSE="docker-compose"
+    else
+        echo "${RED}错误: 未找到 docker compose 或 docker-compose 命令${NC}" >&2
+        exit 1
+    fi
+}
+
 # =============================================================================
 # 显示帮助信息
 # =============================================================================
 show_help() {
     init_colors
+    detect_compose_command
     echo "${BLUE}gsuid_core Docker 环境初始化脚本 v${VERSION}${NC}"
     echo ""
     echo "${YELLOW}用法:${NC}"
@@ -102,15 +114,15 @@ show_help() {
     echo ""
     echo "${YELLOW}常用 Docker 命令:${NC}"
     echo ""
-    echo "  ${GREEN}启动服务:${NC}              docker-compose up -d"
-    echo "  ${GREEN}查看日志:${NC}              docker-compose logs -f"
-    echo "  ${GREEN}重启服务:${NC}              docker-compose restart"
-    echo "  ${GREEN}重新构建并启动:${NC}        docker-compose up -d --build"
-    echo "  ${GREEN}停止服务:${NC}              docker-compose down"
-    echo "  ${GREEN}停止并删除虚拟环境:${NC}    docker-compose down --volumes"
+    echo "  ${GREEN}启动服务:${NC}              $DOCKER_COMPOSE up -d"
+    echo "  ${GREEN}查看日志:${NC}              $DOCKER_COMPOSE logs -f"
+    echo "  ${GREEN}重启服务:${NC}              $DOCKER_COMPOSE restart"
+    echo "  ${GREEN}重新构建并启动:${NC}        $DOCKER_COMPOSE up -d --build"
+    echo "  ${GREEN}停止服务:${NC}              $DOCKER_COMPOSE down"
+    echo "  ${GREEN}停止并删除虚拟环境:${NC}    $DOCKER_COMPOSE down --volumes"
     echo "  ${GREEN}进入容器 shell:${NC}        docker exec -it gsuid_core sh"
     echo "  ${GREEN}安装 Python 包:${NC}        docker exec -it gsuid_core uv pip install <包名>"
-    echo "  ${GREEN}查看状态:${NC}              docker-compose ps"
+    echo "  ${GREEN}查看状态:${NC}              $DOCKER_COMPOSE ps"
     echo "  ${GREEN}查看资源使用:${NC}          docker stats gsuid_core"
     echo "  ${GREEN}配置 git 代理:${NC}         docker exec -it gsuid_core git config --global http.proxy http://host.docker.internal:7890"
     echo ""
@@ -1140,9 +1152,9 @@ build_or_pull_image() {
     if [ "$AUTO_YES" = "true" ]; then
         echo "${YELLOW}正在拉取镜像...${NC}"
         if [ "$USE_LOCAL_BUILD" = "true" ]; then
-            docker-compose build
+            $DOCKER_COMPOSE build
         else
-            docker-compose pull
+            $DOCKER_COMPOSE pull
         fi
         echo "${GREEN}✓ 镜像准备完成${NC}"
         return
@@ -1159,9 +1171,9 @@ build_or_pull_image() {
     echo ""
     echo "${YELLOW}正在构建镜像...${NC}"
     if [ "$USE_LOCAL_BUILD" = "true" ]; then
-        docker-compose build
+        $DOCKER_COMPOSE build
     else
-        docker-compose pull
+        $DOCKER_COMPOSE pull
     fi
     echo "${GREEN}✓ 镜像准备完成${NC}"
 }
@@ -1178,7 +1190,7 @@ show_completion_info() {
     echo "配置文件: ${GREEN}docker-compose.yaml${NC}"
     echo ""
     echo "运行 ${GREEN}./setup.sh -h${NC} 查看常用命令"
-    echo "运行 ${GREEN}docker-compose up -d${NC} 启动服务"
+    echo "运行 ${GREEN}$DOCKER_COMPOSE up -d${NC} 启动服务"
     echo ""
 }
 
@@ -1283,6 +1295,7 @@ main() {
     esac
 
     init_colors
+    detect_compose_command
     check_update
 
     echo "${BLUE}================================================${NC}"
