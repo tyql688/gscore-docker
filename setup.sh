@@ -6,7 +6,7 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.4.0"
+VERSION="1.4.1"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
@@ -506,7 +506,7 @@ clone_source() {
 # =============================================================================
 define_plugins() {
     # 插件配置
-    PLUGIN_COUNT=20
+    PLUGIN_COUNT=21
     PLUGIN_NAME_1="GenshinUID";      PLUGIN_DESC_1="原神"
     PLUGIN_NAME_2="StarRailUID";     PLUGIN_DESC_2="星穹铁道"
     PLUGIN_NAME_3="ZZZeroUID";       PLUGIN_DESC_3="绝区零"
@@ -527,6 +527,7 @@ define_plugins() {
     PLUGIN_NAME_18="EndUID";         PLUGIN_DESC_18="小维终末地"
     PLUGIN_NAME_19="RocomUID";       PLUGIN_DESC_19="洛克王国"
     PLUGIN_NAME_20="RH_ComfyUI";    PLUGIN_DESC_20="comfyui"
+    PLUGIN_NAME_21="NTEUID";         PLUGIN_DESC_21="异环"
 
     # 设置插件 URL
     if [ "$USE_CNB" = "true" ]; then
@@ -550,6 +551,7 @@ define_plugins() {
         PLUGIN_18="https://cnb.cool/gscore-mirror/EndUID.git"
         PLUGIN_19="https://cnb.cool/gscore-mirror/RocomUID.git"
         PLUGIN_20="https://cnb.cool/gscore-mirror/RH_ComfyUI.git"
+        PLUGIN_21="https://cnb.cool/gscore-mirror/NTEUID.git"
     else
         PLUGIN_1="https://github.com/KimigaiiWuyi/GenshinUID.git"
         PLUGIN_2="https://github.com/baiqwerdvd/StarRailUID.git"
@@ -571,6 +573,7 @@ define_plugins() {
         PLUGIN_18="https://github.com/Loping151/EndUID.git"
         PLUGIN_19="https://github.com/jiluoQAQ/RocomUID.git"
         PLUGIN_20="https://github.com/KimigaiiWuyi/RH_ComfyUI.git"
+        PLUGIN_21="https://github.com/tyql688/NTEUID.git"
     fi
 }
 
