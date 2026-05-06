@@ -6,7 +6,7 @@ set -e
 # =============================================================================
 # 全局变量
 # =============================================================================
-VERSION="1.4.1"
+VERSION="1.4.2"
 REMOTE_SCRIPT_URL="https://cnb.cool/gscore-mirror/gscore-docker/-/git/raw/main/setup.sh"
 
 # 配置变量
@@ -506,7 +506,7 @@ clone_source() {
 # =============================================================================
 define_plugins() {
     # 插件配置
-    PLUGIN_COUNT=21
+    PLUGIN_COUNT=29
     PLUGIN_NAME_1="GenshinUID";      PLUGIN_DESC_1="原神"
     PLUGIN_NAME_2="StarRailUID";     PLUGIN_DESC_2="星穹铁道"
     PLUGIN_NAME_3="ZZZeroUID";       PLUGIN_DESC_3="绝区零"
@@ -528,6 +528,14 @@ define_plugins() {
     PLUGIN_NAME_19="RocomUID";       PLUGIN_DESC_19="洛克王国"
     PLUGIN_NAME_20="RH_ComfyUI";    PLUGIN_DESC_20="comfyui"
     PLUGIN_NAME_21="NTEUID";         PLUGIN_DESC_21="异环"
+    PLUGIN_NAME_22="core_plugin_memes";    PLUGIN_DESC_22="表情包"
+    PLUGIN_NAME_23="gsuidcore_honkai_sign"; PLUGIN_DESC_23="崩坏三签到"
+    PLUGIN_NAME_24="maimai_plugin";        PLUGIN_DESC_24="maimai"
+    PLUGIN_NAME_25="ArknightsUID";         PLUGIN_DESC_25="明日方舟"
+    PLUGIN_NAME_26="gsuidcore_psytest";    PLUGIN_DESC_26="心理测试"
+    PLUGIN_NAME_27="aemeth_ai";            PLUGIN_DESC_27="爱弥斯AI"
+    PLUGIN_NAME_28="Pokemon";              PLUGIN_DESC_28="宝可梦"
+    PLUGIN_NAME_29="PGRUID";               PLUGIN_DESC_29="战双"
 
     # 设置插件 URL
     if [ "$USE_CNB" = "true" ]; then
@@ -552,6 +560,14 @@ define_plugins() {
         PLUGIN_19="https://cnb.cool/gscore-mirror/RocomUID.git"
         PLUGIN_20="https://cnb.cool/gscore-mirror/RH_ComfyUI.git"
         PLUGIN_21="https://cnb.cool/gscore-mirror/NTEUID.git"
+        PLUGIN_22="https://cnb.cool/gscore-mirror/core_plugin_memes.git"
+        PLUGIN_23="https://cnb.cool/gscore-mirror/gsuidcore_honkai_sign.git"
+        PLUGIN_24="https://cnb.cool/gscore-mirror/maimai_plugin.git"
+        PLUGIN_25="https://cnb.cool/gscore-mirror/ArknightsUID.git"
+        PLUGIN_26="https://cnb.cool/gscore-mirror/gsuidcore_psytest.git"
+        PLUGIN_27="https://cnb.cool/gscore-mirror/aemeth_ai.git"
+        PLUGIN_28="https://cnb.cool/gscore-mirror/Pokemon.git"
+        PLUGIN_29="https://cnb.cool/gscore-mirror/PGRUID.git"
     else
         PLUGIN_1="https://github.com/KimigaiiWuyi/GenshinUID.git"
         PLUGIN_2="https://github.com/baiqwerdvd/StarRailUID.git"
@@ -574,6 +590,14 @@ define_plugins() {
         PLUGIN_19="https://github.com/jiluoQAQ/RocomUID.git"
         PLUGIN_20="https://github.com/KimigaiiWuyi/RH_ComfyUI.git"
         PLUGIN_21="https://github.com/tyql688/NTEUID.git"
+        PLUGIN_22="https://github.com/Loping151/core_plugin_memes.git"
+        PLUGIN_23="https://github.com/RBAmeto/gsuidcore_honkai_sign.git"
+        PLUGIN_24="https://github.com/Agnes4m/maimai_plugin.git"
+        PLUGIN_25="https://github.com/baiqwerdvd/ArknightsUID.git"
+        PLUGIN_26="https://github.com/KimigaiiWuyi/gsuidcore_psytest.git"
+        PLUGIN_27="https://github.com/SyameimaruAyame/aemeth_ai.git"
+        PLUGIN_28="https://github.com/jiluoQAQ/Pokemon.git"
+        PLUGIN_29="https://github.com/Loping151/PGRUID.git"
     fi
 }
 
@@ -620,8 +644,11 @@ install_plugins() {
     define_plugins
 
     # 选择状态
-    SEL_1=0; SEL_2=0; SEL_3=0; SEL_4=0; SEL_5=0; SEL_6=0; SEL_7=0; SEL_8=0
-    SEL_9=0; SEL_10=0; SEL_11=0; SEL_12=0; SEL_13=0; SEL_14=0; SEL_15=0; SEL_16=0; SEL_17=0; SEL_18=0
+    i=1
+    while [ $i -le $PLUGIN_COUNT ]; do
+        eval "SEL_$i=0"
+        i=$((i+1))
+    done
 
     # 显示菜单
     show_plugin_menu() {
@@ -669,7 +696,7 @@ install_plugins() {
             continue
         fi
 
-        if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le 18 ]; then
+        if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le $PLUGIN_COUNT ]; then
             eval "current=\$SEL_$choice"
             if [ "$current" = "1" ]; then
                 eval "SEL_$choice=0"
